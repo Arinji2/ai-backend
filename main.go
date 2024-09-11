@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/Arinji2/ai-backend/completions"
 	custom_log "github.com/Arinji2/ai-backend/logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -31,6 +32,7 @@ func main() {
 
 	r.Get("/", healthHandler)
 	r.Get("/health", healthCheckHandler)
+	r.Post("/completions", completions.CompletionsHandler)
 
 	http.ListenAndServe(":8080", r)
 }
