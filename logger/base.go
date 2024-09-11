@@ -9,7 +9,7 @@ var Logger *slog.Logger
 
 func init() {
 
-	template := `[{{level}}] [{{caller}}] {{message}}`
+	template := "[{{level}}] [{{caller}}] {{message}}\n"
 
 	h := handler.NewConsoleHandler(slog.AllLevels)
 	h.Formatter().(*slog.TextFormatter).SetTemplate(template)
