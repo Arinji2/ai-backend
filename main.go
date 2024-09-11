@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	custom_log "github.com/Arinji2/ai-backend/logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -22,10 +23,10 @@ func main() {
 		if !isProduction {
 			log.Fatal("Error loading .env file")
 		} else {
-			//	custom_log.Logger.Warn("Using Production Environment")
+			custom_log.Logger.Warn("Using Production Environment")
 		}
 	} else {
-		//custom_log.Logger.Warn("Using Development Environment")
+		custom_log.Logger.Warn("Using Development Environment")
 	}
 
 	r.Get("/", healthHandler)
