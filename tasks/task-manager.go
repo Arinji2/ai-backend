@@ -1,8 +1,6 @@
 package tasks
 
 import (
-	"time"
-
 	custom_log "github.com/Arinji2/ai-backend/logger"
 )
 
@@ -16,7 +14,7 @@ func GetTaskManager() *TaskManager {
 func NewTaskManager() *TaskManager {
 	tasks := SetupTasks()
 	taskManager := &TaskManager{AllTasks: tasks}
-	go taskManager.ProcessTasks()
+
 	return taskManager
 }
 
@@ -33,6 +31,7 @@ func (tm *TaskManager) AddRequest(prompt string) chan struct{} {
 		if !task.IsProcessing && len(task.QueuedProcesses) == 0 {
 			task.QueuedProcesses = append(task.QueuedProcesses, &QueuedProcess{Prompt: prompt, Done: done})
 			task.TaskMu.Unlock()
+			taskManagerInstance.PingProcessor(task.ApiKey)
 			return done
 		}
 		if minQueueLength == -1 || len(task.QueuedProcesses) < minQueueLength {
@@ -48,19 +47,15 @@ func (tm *TaskManager) AddRequest(prompt string) chan struct{} {
 		leastBusyTask.TaskMu.Unlock()
 	}
 
+	taskManagerInstance.PingProcessor(leastBusyTask.ApiKey)
+
 	return done
 }
 
-func (tm *TaskManager) ProcessTasks() {
-	ticker := time.NewTicker(time.Second * 1)
-	custom_log.Logger.Info("Starting Task Processor")
-	for range ticker.C {
-		go func() {
-			tm.AllTasks.TasksMu.RLock()
-			for _, task := range tm.AllTasks.Tasks {
-				task.ProcessTasks()
-			}
-			tm.AllTasks.TasksMu.RUnlock()
-		}()
-	}
+func (tm *TaskManager) PingProcessor(key string) {
+	custom_log.Logger.Debug("Pinging Processor: ", key)
+	tm.AllTasks.TasksMu.RLock()
+	defer tm.AllTasks.TasksMu.RUnlock()
+	task := tm.AllTasks.Tasks[key]
+	task.ProcessTasks()
 }
