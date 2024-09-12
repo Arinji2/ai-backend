@@ -1,4 +1,4 @@
-package completions
+package input
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func GetBodyInput(r *http.Request) (string, error) {
+func CompletionsBodyInput(r *http.Request) (string, error) {
 	var requestBody []interface{}
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()

@@ -5,9 +5,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/Arinji2/ai-backend/completions"
 	custom_log "github.com/Arinji2/ai-backend/logger"
+	"github.com/Arinji2/ai-backend/tasks"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -33,6 +35,21 @@ func main() {
 	r.Get("/", healthHandler)
 	r.Get("/health", healthCheckHandler)
 	r.Post("/completions", completions.CompletionsHandler)
+
+	taskManager := tasks.GetTaskManager()
+	go func() {
+		ticker := time.NewTicker(time.Second * 10)
+		for range ticker.C {
+
+			for key, tasks := range taskManager.AllTasks.Tasks {
+				if len(tasks.QueuedProcesses) == 0 {
+					continue
+				}
+				custom_log.Logger.Debug("Tasks In Queue: ", key, len(tasks.QueuedProcesses))
+			}
+
+		}
+	}()
 
 	http.ListenAndServe(":8080", r)
 }
