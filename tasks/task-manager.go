@@ -36,7 +36,6 @@ func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan)
 		done = make(chan ResponseChan)
 	}
 
-	// Iterate over all tasks to find a suitable task for the request
 	for _, task := range tm.AllTasks.Tasks {
 		if task.IsOverloaded {
 			continue
