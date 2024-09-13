@@ -2,7 +2,7 @@ package tasks
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 	"sync"
@@ -55,18 +55,20 @@ var (
 	once                sync.Once
 )
 
-func SetupTasks() (*TaskObjects, *PendingTaskObjects) {
-	jsonFile, err := os.Open("./keys.json")
-	if err != nil {
-		panic(err)
-	}
-	defer jsonFile.Close()
+func SetupTasks(keys []JsonKeys) (*TaskObjects, *PendingTaskObjects) {
+	if keys == nil {
+		jsonFile, err := os.Open("./keys.json")
+		if err != nil {
+			panic(err)
+		}
+		defer jsonFile.Close()
 
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-	var keys []JsonKeys
-	err = json.Unmarshal(byteValue, &keys)
-	if err != nil {
-		panic(err)
+		byteValue, _ := io.ReadAll(jsonFile)
+		var keys []JsonKeys
+		err = json.Unmarshal(byteValue, &keys)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	tasks := &TaskObjects{

@@ -8,7 +8,7 @@ func GetTaskManager() *TaskManager {
 }
 
 func NewTaskManager() *TaskManager {
-	tasks, pendingTasks := SetupTasks()
+	tasks, pendingTasks := SetupTasks(nil)
 	taskManager := &TaskManager{AllTasks: tasks, PendingTasks: pendingTasks}
 
 	return taskManager
