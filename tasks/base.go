@@ -15,20 +15,19 @@ var (
 	once                sync.Once
 )
 
-func SetupTasks(keys []JsonKeys) (*TaskObjects, *PendingTaskObjects) {
-	if keys == nil {
-		jsonFile, err := os.Open("./keys.json")
-		if err != nil {
-			panic(err)
-		}
-		defer jsonFile.Close()
+func SetupTasks() (*TaskObjects, *PendingTaskObjects) {
 
-		byteValue, _ := io.ReadAll(jsonFile)
-		var keys []JsonKeys
-		err = json.Unmarshal(byteValue, &keys)
-		if err != nil {
-			panic(err)
-		}
+	jsonFile, err := os.Open("./keys.json")
+	if err != nil {
+		panic(err)
+	}
+	defer jsonFile.Close()
+
+	byteValue, _ := io.ReadAll(jsonFile)
+	var keys []JsonKeys
+	err = json.Unmarshal(byteValue, &keys)
+	if err != nil {
+		panic(err)
 	}
 
 	tasks := &TaskObjects{
