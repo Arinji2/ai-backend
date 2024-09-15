@@ -74,7 +74,8 @@ func (process *QueuedProcess) ErrorWithProcess(err error) {
 }
 
 func (task *TaskObject) UpdateOverloaded() {
-	custom_log.Logger.Warn(task.DisplayName + "IS OVERLOADED")
+	custom_log.Logger.Warn(fmt.Sprintf("%s is overloaded", task.DisplayName))
+	timeForOverloaded := time.Now()
 	task.TaskMu.Lock()
 	task.IsOverloaded = true
 
@@ -94,7 +95,8 @@ func (task *TaskObject) UpdateOverloaded() {
 				task.IsOverloaded = false
 
 				task.TaskMu.Unlock()
-				custom_log.Logger.Warn(task.DisplayName + "IS READY")
+				readyTime := int(math.Round(time.Since(timeForOverloaded).Seconds()))
+				custom_log.Logger.Warn(fmt.Sprintf("%s is ready in %d seconds", task.DisplayName, readyTime))
 
 				taskManagerInstance.TaskQueueUnloaded(task)
 				break
@@ -125,5 +127,8 @@ func (taskQueue *TaskObject) MoveQueueOut() {
 }
 func recoverPanic(task *TaskObject) {
 	r := recover()
+	if r == nil {
+		return
+	}
 	custom_log.Logger.Error(fmt.Sprintf("Recovered from panic in %s for %s", task.DisplayName, r))
 }
