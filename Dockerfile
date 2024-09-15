@@ -24,7 +24,6 @@ WORKDIR /app
 COPY --from=builder /app/main .
 
 
-
 # Expose the port your application runs on
 EXPOSE 8080
 
