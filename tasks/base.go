@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -16,11 +17,24 @@ var (
 )
 
 func SetupTasks() (*TaskObjects, *PendingTaskObjects) {
-
-	jsonFile, err := os.Open("./keys.json")
+	dir, err := os.Getwd()
 	if err != nil {
 		panic(err)
 	}
+
+	keyDir := ""
+
+	if os.Getenv("ENVIRONMENT") == "PRODUCTION" {
+		keyDir = "/keys.json"
+	} else {
+		keyDir = fmt.Sprintf("%s/keys.json", dir)
+	}
+
+	jsonFile, err := os.Open(keyDir)
+	if err != nil {
+		panic(err)
+	}
+
 	defer jsonFile.Close()
 
 	byteValue, _ := io.ReadAll(jsonFile)
