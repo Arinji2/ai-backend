@@ -50,7 +50,7 @@ func (task *TaskObject) ProcessTasks() {
 			continue
 		}
 
-		fmt.Println("Fullfilled via ", task.ApiKey)
+		custom_log.Logger.Debug(fmt.Sprintf("Fulfilled By %s", task.DisplayName))
 
 		select {
 		case queue.Done <- ResponseChan{Response: response}:

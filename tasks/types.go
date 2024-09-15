@@ -13,6 +13,7 @@ type TaskObject struct {
 	QueuedProcesses []*QueuedProcess
 	TaskMu          sync.Mutex
 	IsOverloaded    bool
+	DisplayName     string
 }
 
 type TaskObjects struct {

@@ -36,8 +36,8 @@ func SetupTasks() (*TaskObjects, *PendingTaskObjects) {
 	for _, keyData := range keys {
 		trimmedKey := strings.TrimSpace(keyData.Key)
 		taskObject := &TaskObject{
-			ApiKey: trimmedKey,
-
+			ApiKey:          trimmedKey,
+			DisplayName:     keyData.Name,
 			QueuedProcesses: make([]*QueuedProcess, 0),
 		}
 		tasks.Tasks[trimmedKey] = taskObject
