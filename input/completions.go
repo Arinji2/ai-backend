@@ -7,33 +7,39 @@ import (
 )
 
 func CompletionsBodyInput(r *http.Request) (string, error) {
-	var requestBody []interface{}
+	var requestBody interface{}
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 
+	// Decode the request body into an interface{}
 	if err := decoder.Decode(&requestBody); err != nil {
 		return "", errors.New("invalid input")
-
 	}
 
 	var prompt string
-	if len(requestBody) > 0 {
 
-		if bodyMap, ok := requestBody[0].(map[string]interface{}); ok {
-			if content, exists := bodyMap["content"].(string); exists {
-				prompt = content
+	switch body := requestBody.(type) {
+	// Handle the case where input is an array of objects (with "role" and "content")
+	case []interface{}:
+		if len(body) > 0 {
+			// Check if the first item is an object with "role" and "content"
+			if bodyMap, ok := body[0].(map[string]interface{}); ok {
+				if content, exists := bodyMap["content"].(string); exists {
+					prompt = content
+				} else {
+					return "", errors.New("invalid input format: missing 'content' field")
+				}
+			} else if bodyString, ok := body[0].(string); ok {
+				// Handle the case where the input is an array of strings
+				prompt = bodyString
 			} else {
-				return "", errors.New("invalid input format")
+				return "", errors.New("invalid input format for array")
 			}
-		} else if bodyString, ok := requestBody[0].(string); ok {
-
-			prompt = bodyString
 		} else {
-			return "", errors.New("invalid input format")
+			return "", errors.New("empty input array")
 		}
-	} else {
-
-		return "", errors.New("empty input")
+	default:
+		return "", errors.New("unknown input format")
 	}
 
 	return prompt, nil
