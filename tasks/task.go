@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -50,7 +51,9 @@ func (task *TaskObject) ProcessTasks() {
 			continue
 		}
 
-		custom_log.Logger.Debug(fmt.Sprintf("Fulfilled By %s", task.DisplayName))
+		loggableTime := int(math.Round(time.Since(queue.TimeStarted).Seconds()))
+
+		custom_log.Logger.Debug(fmt.Sprintf("Fulfilled By %s In %d Seconds", task.DisplayName, loggableTime))
 
 		select {
 		case queue.Done <- ResponseChan{Response: response}:
@@ -71,7 +74,7 @@ func (process *QueuedProcess) ErrorWithProcess(err error) {
 }
 
 func (task *TaskObject) UpdateOverloaded() {
-	custom_log.Logger.Warn(task.ApiKey + "IS OVERLOADED")
+	custom_log.Logger.Warn(task.DisplayName + "IS OVERLOADED")
 	task.TaskMu.Lock()
 	task.IsOverloaded = true
 
@@ -80,6 +83,7 @@ func (task *TaskObject) UpdateOverloaded() {
 	task.MoveQueueOut()
 
 	go func() {
+
 		ticker := time.NewTicker(time.Second * 5)
 		for range ticker.C {
 			defer ticker.Stop()
@@ -90,9 +94,9 @@ func (task *TaskObject) UpdateOverloaded() {
 				task.IsOverloaded = false
 
 				task.TaskMu.Unlock()
-				custom_log.Logger.Warn(task.ApiKey + "IS READY")
+				custom_log.Logger.Warn(task.DisplayName + "IS READY")
 
-				taskManagerInstance.TaskQueueUnloaded(task) // Ensure this is only called after it's ready
+				taskManagerInstance.TaskQueueUnloaded(task)
 				break
 			}
 		}

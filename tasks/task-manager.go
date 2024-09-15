@@ -1,5 +1,7 @@
 package tasks
 
+import "time"
+
 func GetTaskManager() *TaskManager {
 	once.Do(func() {
 		taskManagerInstance = NewTaskManager()
@@ -15,16 +17,16 @@ func NewTaskManager() *TaskManager {
 }
 
 func (tm *TaskManager) AddRequest(prompt string) chan ResponseChan {
-	return tm.addRequestInternal(prompt, nil)
+	return tm.addRequestInternal(prompt, nil, time.Now())
 }
 
 func (tm *TaskManager) MoveAddedRequest(prompt string, done chan ResponseChan) {
 
-	tm.addRequestInternal(prompt, done)
+	tm.addRequestInternal(prompt, done, time.Time{})
 
 }
 
-func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan) chan ResponseChan {
+func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan, initialTime time.Time) chan ResponseChan {
 	tm.AllTasks.TasksMu.RLock()
 	defer tm.AllTasks.TasksMu.RUnlock()
 
@@ -36,6 +38,10 @@ func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan)
 		done = make(chan ResponseChan)
 	}
 
+	if initialTime.IsZero() {
+		initialTime = time.Now()
+	}
+
 	for _, task := range tm.AllTasks.Tasks {
 		if task.IsOverloaded {
 			continue
@@ -44,7 +50,7 @@ func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan)
 
 		if len(task.QueuedProcesses) == 0 && !task.IsOverloaded {
 
-			task.QueuedProcesses = append(task.QueuedProcesses, &QueuedProcess{Prompt: prompt, Done: done})
+			task.QueuedProcesses = append(task.QueuedProcesses, &QueuedProcess{Prompt: prompt, Done: done, TimeStarted: initialTime})
 			task.TaskMu.Unlock()
 			go taskManagerInstance.PingProcessor(task.ApiKey)
 			taskAdded = true
@@ -60,7 +66,7 @@ func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan)
 	if leastBusyTask != nil {
 
 		leastBusyTask.TaskMu.Lock()
-		leastBusyTask.QueuedProcesses = append(leastBusyTask.QueuedProcesses, &QueuedProcess{Prompt: prompt, Done: done})
+		leastBusyTask.QueuedProcesses = append(leastBusyTask.QueuedProcesses, &QueuedProcess{Prompt: prompt, Done: done, TimeStarted: initialTime})
 		leastBusyTask.TaskMu.Unlock()
 		go taskManagerInstance.PingProcessor(leastBusyTask.ApiKey)
 		taskAdded = true
@@ -72,7 +78,7 @@ func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan)
 		taskManagerInstance.PendingTasks.PendingTasks = append(taskManagerInstance.PendingTasks.PendingTasks, &TaskObject{
 			ApiKey: "pending",
 			QueuedProcesses: []*QueuedProcess{
-				{Prompt: prompt, Done: done},
+				{Prompt: prompt, Done: done, TimeStarted: initialTime},
 			},
 		})
 		taskManagerInstance.PendingTasks.PendingMu.Unlock()

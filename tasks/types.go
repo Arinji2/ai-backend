@@ -1,11 +1,15 @@
 package tasks
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 type QueuedProcess struct {
-	Prompt  string
-	Done    chan ResponseChan
-	Retries int
+	Prompt      string
+	Done        chan ResponseChan
+	Retries     int
+	TimeStarted time.Time
 }
 
 type TaskObject struct {

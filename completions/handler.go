@@ -37,7 +37,6 @@ func CompletionsHandler(w http.ResponseWriter, r *http.Request) {
 	custom_log.Logger.Debug("NEW REQUEST RECEIVED")
 
 	response := <-taskManager.AddRequest(prompt)
-	custom_log.Logger.Debug("SENT BACK RESPONSE")
 
 	if strings.Contains(response.Response, "Error Processing Task") {
 		w.WriteHeader(http.StatusInternalServerError)
