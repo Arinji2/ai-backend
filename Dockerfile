@@ -27,5 +27,9 @@ COPY --from=builder /app/main .
 # Expose the port your application runs on
 EXPOSE 8080
 
+# Healthcheck 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD wget --spider http://localhost:8080/health || exit 1
+
 # Command to run the executable
 CMD ["./main"]
