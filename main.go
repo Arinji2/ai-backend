@@ -17,9 +17,6 @@ import (
 )
 
 func main() {
-	r := chi.NewRouter()
-	r.Use(SkipLoggingMiddleware)
-
 	err := godotenv.Load()
 	if err != nil {
 		isProduction := os.Getenv("ENVIRONMENT") == "PRODUCTION"
@@ -31,6 +28,9 @@ func main() {
 	} else {
 		custom_log.Logger.Warn("Using Development Environment")
 	}
+	r := chi.NewRouter()
+	r.Use(SkipLoggingMiddleware)
+	r.Use(CheckAccessKeyMiddleware)
 
 	r.Get("/", healthHandler)
 	r.Get("/health", healthCheckHandler)
@@ -71,6 +71,25 @@ func SkipLoggingMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
+		middleware.Logger(next).ServeHTTP(w, r)
+	})
+}
+
+func CheckAccessKeyMiddleware(next http.Handler) http.Handler {
+	accessKey := os.Getenv("ACCESS_KEY")
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/health" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		inputAccessKey := r.Header.Get("Authorization")
+		if inputAccessKey != accessKey {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("Unauthorized"))
+			return
+		}
+
 		middleware.Logger(next).ServeHTTP(w, r)
 	})
 }
