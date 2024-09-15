@@ -10,7 +10,7 @@ import (
 )
 
 func (task *TaskObject) ProcessTasks() {
-	defer recoverPanic()
+	defer recoverPanic(task)
 
 	if task.IsOverloaded {
 		return
@@ -106,8 +106,6 @@ func (task *TaskObject) UpdateOverloaded() {
 func (taskQueue *TaskObject) MoveQueueOut() {
 	taskQueue.TaskMu.Lock()
 	defer taskQueue.TaskMu.Unlock()
-
-	// Create a copy of the queue to iterate over
 	queueCopy := make([]*QueuedProcess, len(taskQueue.QueuedProcesses))
 	copy(queueCopy, taskQueue.QueuedProcesses)
 
@@ -119,21 +117,13 @@ func (taskQueue *TaskObject) MoveQueueOut() {
 			taskManagerInstance.MoveAddedRequest(t.Prompt, t.Done)
 		}(task)
 	}
-
-	// Clear the queue immediately
 	taskQueue.QueuedProcesses = []*QueuedProcess{}
-
-	// Wait for all tasks to be moved
 	wg.Wait()
-
-	// Double-check that the queue is still empty
 	if len(taskQueue.QueuedProcesses) > 0 {
 		custom_log.Logger.Warn("Queue was not empty after clearing. Current length:", len(taskQueue.QueuedProcesses))
 	}
 }
-func recoverPanic() {
-	if r := recover(); r != nil {
-
-		// Optionally restart the goroutine or perform other recovery actions
-	}
+func recoverPanic(task *TaskObject) {
+	r := recover()
+	custom_log.Logger.Error(fmt.Sprintf("Recovered from panic in %s for %s", task.DisplayName, r))
 }
