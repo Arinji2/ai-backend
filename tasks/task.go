@@ -99,6 +99,7 @@ func (task *TaskObject) UpdateOverloaded() {
 				custom_log.Logger.Warn(fmt.Sprintf("%s is ready in %d seconds", task.DisplayName, readyTime))
 
 				taskManagerInstance.TaskQueueUnloaded(task)
+				taskManagerInstance.CheckPendingTasks(task)
 				break
 			}
 		}
