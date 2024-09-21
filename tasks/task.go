@@ -31,28 +31,13 @@ func (task *TaskObject) ProcessTasks() {
 		queue := task.QueuedProcesses[0]
 		task.QueuedProcesses = task.QueuedProcesses[1:]
 		task.TaskMu.Unlock()
-		// time.Sleep(time.Second * 3)
-		// showError := rand.Intn(5) == 0
-		// var err error
-		// response := ""
-		// if showError {
-		// 	err = errors.New("googleapi: Error 429: Resource has been exhausted (e.g. check quota).")
-		// 	response = "Error Processing Task: " + err.Error()
-		// } else {
-		// 	err = nil
-		// 	response = "4"
-		// }
-
 		response, err := GetPromptResponse(task, queue.Prompt)
 
 		if err != nil {
 
 			if err.Error() == "googleapi: Error 429: Resource has been exhausted (e.g. check quota)." {
 
-				task.TaskMu.Lock()
-				task.QueuedProcesses = append(task.QueuedProcesses, queue)
-				task.TaskMu.Unlock()
-				task.UpdateOverloaded()
+				task.UpdateOverloaded(queue, false)
 				continue
 			}
 			queue.Retries++
@@ -88,7 +73,7 @@ func (process *QueuedProcess) ErrorWithProcess(err error) {
 	}
 }
 
-func (task *TaskObject) UpdateOverloaded() {
+func (task *TaskObject) UpdateOverloaded(queue *QueuedProcess, testingMode bool) {
 	if task.IsOverloaded {
 		return
 	}
@@ -96,6 +81,7 @@ func (task *TaskObject) UpdateOverloaded() {
 	timeForOverloaded := time.Now()
 	task.TaskMu.Lock()
 	task.IsOverloaded = true
+	task.QueuedProcesses = append(task.QueuedProcesses, queue)
 
 	task.TaskMu.Unlock()
 
@@ -103,10 +89,20 @@ func (task *TaskObject) UpdateOverloaded() {
 
 	go func() {
 
-		ticker := time.NewTicker(time.Second * 5)
+		var ticker *time.Ticker
+		if !testingMode {
+			ticker = time.NewTicker(time.Second * 5)
+		} else {
+			ticker = time.NewTicker(time.Second * 1)
+		}
 		for range ticker.C {
 			defer ticker.Stop()
-			isReady := GetModelStatus(task)
+			var isReady bool
+			if testingMode {
+				isReady = true
+			} else {
+				isReady = GetModelStatus(task)
+			}
 
 			if isReady {
 

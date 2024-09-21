@@ -28,33 +28,36 @@ func TestNewTaskManager(t *testing.T) {
 	}
 
 	testingTaskManager = taskManager
-
+	taskManagerInstance = taskManager
 }
 
 func TestAddRequest(t *testing.T) {
 	TestNewTaskManager(t)
 	testingTaskManager.AddRequest("test", true)
 
-	if len(testingTaskManager.AllTasks.Tasks["test1"].QueuedProcesses) != 1 {
-		t.Error("Task not added correctly")
+	firstQueuedProcesses := len(testingTaskManager.AllTasks.Tasks["test1"].QueuedProcesses)
+	secondQueuedProcesses := len(testingTaskManager.AllTasks.Tasks["test2"].QueuedProcesses)
+
+	if (firstQueuedProcesses + secondQueuedProcesses) != 1 {
+		t.Error("Task not added correctly (1)", firstQueuedProcesses, secondQueuedProcesses)
 	}
 
 	testingTaskManager.RemoveRequest("test", testingTaskManager.AllTasks.Tasks["test1"])
+	testingTaskManager.RemoveRequest("test", testingTaskManager.AllTasks.Tasks["test2"])
 	totalRequests := 10
 
 	for i := 0; i < totalRequests; i++ {
 		testingTaskManager.AddRequest(fmt.Sprintf("test%d", i), true)
 	}
 
-	firstQueuedProcesses := len(testingTaskManager.AllTasks.Tasks["test1"].QueuedProcesses)
-	secondQueuedProcesses := len(testingTaskManager.AllTasks.Tasks["test2"].QueuedProcesses)
+	firstQueuedProcesses = len(testingTaskManager.AllTasks.Tasks["test1"].QueuedProcesses)
+	secondQueuedProcesses = len(testingTaskManager.AllTasks.Tasks["test2"].QueuedProcesses)
 
 	if (firstQueuedProcesses + secondQueuedProcesses) != totalRequests {
-		t.Error("Task not added correctly")
+		t.Error("Task not added correctly (10)", firstQueuedProcesses, secondQueuedProcesses)
 	}
-
 	if firstQueuedProcesses == totalRequests || secondQueuedProcesses == totalRequests {
-		t.Error("Tasks not distributed equally", firstQueuedProcesses, secondQueuedProcesses)
+		t.Error("Tasks not distributed equally (10)", firstQueuedProcesses, secondQueuedProcesses)
 	}
 
 	for i := 0; i < totalRequests; i++ {
