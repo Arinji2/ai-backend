@@ -15,7 +15,6 @@ func (task *TaskObject) ProcessTasks() {
 	if task.IsOverloaded {
 		return
 	}
-
 	defer func() {
 		task.TaskMu.Lock()
 		task.IsProcessing = false
