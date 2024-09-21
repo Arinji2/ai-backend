@@ -6,13 +6,13 @@ import (
 
 func GetTaskManager() *TaskManager {
 	once.Do(func() {
-		taskManagerInstance = NewTaskManager()
+		taskManagerInstance = NewTaskManager(nil)
 	})
 	return taskManagerInstance
 }
 
-func NewTaskManager() *TaskManager {
-	tasks, pendingTasks := SetupTasks(nil)
+func NewTaskManager(optionalKeys []JsonKeys) *TaskManager {
+	tasks, pendingTasks := SetupTasks(optionalKeys)
 	taskManager := &TaskManager{AllTasks: tasks, PendingTasks: pendingTasks}
 
 	return taskManager
