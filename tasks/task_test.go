@@ -16,7 +16,6 @@ func TestUpdateOverloaded(t *testing.T) {
 			TimeStarted: time.Now(),
 		})
 	}
-
 	for i := 0; i < 4; i++ {
 		testingTaskManager.AllTasks.Tasks["test2"].QueuedProcesses = append(testingTaskManager.AllTasks.Tasks["test2"].QueuedProcesses, &QueuedProcess{
 			Prompt:      fmt.Sprintf("test%d in test2", i),
