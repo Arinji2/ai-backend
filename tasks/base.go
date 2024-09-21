@@ -16,32 +16,37 @@ var (
 	once                sync.Once
 )
 
-func SetupTasks() (*TaskObjects, *PendingTaskObjects) {
-	dir, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-
-	keyDir := ""
-
-	if os.Getenv("ENVIRONMENT") == "PRODUCTION" {
-		keyDir = "/keys.json"
-	} else {
-		keyDir = fmt.Sprintf("%s/keys.json", dir)
-	}
-
-	jsonFile, err := os.Open(keyDir)
-	if err != nil {
-		panic(err)
-	}
-
-	defer jsonFile.Close()
-
-	byteValue, _ := io.ReadAll(jsonFile)
+func SetupTasks(optionalKeys []JsonKeys) (*TaskObjects, *PendingTaskObjects) {
 	var keys []JsonKeys
-	err = json.Unmarshal(byteValue, &keys)
-	if err != nil {
-		panic(err)
+	if optionalKeys == nil {
+		dir, err := os.Getwd()
+		if err != nil {
+			panic(err)
+		}
+
+		keyDir := ""
+
+		if os.Getenv("ENVIRONMENT") == "PRODUCTION" {
+			keyDir = "/keys.json"
+		} else {
+			keyDir = fmt.Sprintf("%s/keys.json", dir)
+		}
+
+		jsonFile, err := os.Open(keyDir)
+		if err != nil {
+			panic(err)
+		}
+
+		defer jsonFile.Close()
+
+		byteValue, _ := io.ReadAll(jsonFile)
+
+		err = json.Unmarshal(byteValue, &keys)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		keys = optionalKeys
 	}
 
 	tasks := &TaskObjects{
