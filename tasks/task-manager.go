@@ -18,17 +18,17 @@ func NewTaskManager(optionalKeys []JsonKeys) *TaskManager {
 	return taskManager
 }
 
-func (tm *TaskManager) AddRequest(prompt string) chan ResponseChan {
-	return tm.addRequestInternal(prompt, nil, time.Now())
+func (tm *TaskManager) AddRequest(prompt string, testingMode bool) chan ResponseChan {
+	return tm.addRequestInternal(prompt, nil, time.Now(), testingMode)
 }
 
 func (tm *TaskManager) MoveAddedRequest(prompt string, done chan ResponseChan) {
 
-	tm.addRequestInternal(prompt, done, time.Time{})
+	tm.addRequestInternal(prompt, done, time.Time{}, false)
 
 }
 
-func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan, initialTime time.Time) chan ResponseChan {
+func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan, initialTime time.Time, testingMode bool) chan ResponseChan {
 
 	tm.AllTasks.TasksMu.RLock()
 	defer func() {
@@ -57,7 +57,9 @@ func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan,
 
 			task.QueuedProcesses = append(task.QueuedProcesses, &QueuedProcess{Prompt: prompt, Done: done, TimeStarted: initialTime})
 			task.TaskMu.Unlock()
-			go taskManagerInstance.PingProcessor(task.ApiKey)
+			if !testingMode {
+				go taskManagerInstance.PingProcessor(task.ApiKey)
+			}
 			taskAdded = true
 			return done
 		}
@@ -73,7 +75,9 @@ func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan,
 		leastBusyTask.TaskMu.Lock()
 		leastBusyTask.QueuedProcesses = append(leastBusyTask.QueuedProcesses, &QueuedProcess{Prompt: prompt, Done: done, TimeStarted: initialTime})
 		leastBusyTask.TaskMu.Unlock()
-		go taskManagerInstance.PingProcessor(leastBusyTask.ApiKey)
+		if !testingMode {
+			go taskManagerInstance.PingProcessor(leastBusyTask.ApiKey)
+		}
 		taskAdded = true
 	}
 
@@ -109,7 +113,7 @@ func (tm *TaskManager) CheckPendingTasks(task *TaskObject) {
 	tm.PendingTasks.PendingMu.Unlock()
 
 	for _, pendingTask := range pendingTasks {
-		tm.addRequestInternal(pendingTask.Prompt, pendingTask.Done, pendingTask.TimeStarted)
+		tm.addRequestInternal(pendingTask.Prompt, pendingTask.Done, pendingTask.TimeStarted, false)
 	}
 
 	tm.PendingTasks.PendingMu.Lock()
