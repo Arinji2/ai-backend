@@ -17,6 +17,9 @@ func (task *TaskObject) ProcessTasks() {
 	}
 
 	defer func() {
+		task.TaskMu.Lock()
+		task.IsProcessing = false
+		task.TaskMu.Unlock()
 
 		taskManagerInstance.CheckPendingTasks(task)
 	}()
@@ -24,9 +27,21 @@ func (task *TaskObject) ProcessTasks() {
 	for len(task.QueuedProcesses) > 0 {
 
 		task.TaskMu.Lock()
+		task.IsProcessing = true
 		queue := task.QueuedProcesses[0]
 		task.QueuedProcesses = task.QueuedProcesses[1:]
 		task.TaskMu.Unlock()
+		// time.Sleep(time.Second * 3)
+		// showError := rand.Intn(5) == 0
+		// var err error
+		// response := ""
+		// if showError {
+		// 	err = errors.New("googleapi: Error 429: Resource has been exhausted (e.g. check quota).")
+		// 	response = "Error Processing Task: " + err.Error()
+		// } else {
+		// 	err = nil
+		// 	response = "4"
+		// }
 
 		response, err := GetPromptResponse(task, queue.Prompt)
 
@@ -74,6 +89,9 @@ func (process *QueuedProcess) ErrorWithProcess(err error) {
 }
 
 func (task *TaskObject) UpdateOverloaded() {
+	if task.IsOverloaded {
+		return
+	}
 	custom_log.Logger.Warn(fmt.Sprintf("%s is overloaded", task.DisplayName))
 	timeForOverloaded := time.Now()
 	task.TaskMu.Lock()
@@ -91,6 +109,7 @@ func (task *TaskObject) UpdateOverloaded() {
 			isReady := GetModelStatus(task)
 
 			if isReady {
+
 				task.TaskMu.Lock()
 				task.IsOverloaded = false
 
@@ -122,6 +141,7 @@ func (taskQueue *TaskObject) MoveQueueOut() {
 	}
 	taskQueue.QueuedProcesses = []*QueuedProcess{}
 	wg.Wait()
+
 	if len(taskQueue.QueuedProcesses) > 0 {
 		custom_log.Logger.Warn("Queue was not empty after clearing. Current length:", len(taskQueue.QueuedProcesses))
 	}

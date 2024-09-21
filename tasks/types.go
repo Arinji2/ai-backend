@@ -18,6 +18,7 @@ type TaskObject struct {
 	TaskMu          sync.Mutex
 	IsOverloaded    bool
 	DisplayName     string
+	IsProcessing    bool
 }
 
 type TaskObjects struct {
@@ -26,8 +27,8 @@ type TaskObjects struct {
 }
 
 type PendingTaskObjects struct {
-	PendingTasks []*TaskObject
 	PendingMu    sync.RWMutex
+	PendingQueue []*QueuedProcess
 }
 
 type TaskManager struct {

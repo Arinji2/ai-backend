@@ -59,7 +59,8 @@ func SetupTasks() (*TaskObjects, *PendingTaskObjects) {
 	}
 
 	pendingTasks := &PendingTaskObjects{
-		PendingTasks: make([]*TaskObject, 0),
+		PendingMu:    sync.RWMutex{},
+		PendingQueue: make([]*QueuedProcess, 0),
 	}
 	return tasks, pendingTasks
 }

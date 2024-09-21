@@ -48,6 +48,10 @@ func main() {
 				custom_log.Logger.Debug("Tasks In Queue: ", key, len(tasks.QueuedProcesses))
 			}
 
+			if len(taskManager.PendingTasks.PendingQueue) > 0 {
+				custom_log.Logger.Debug("Pending Tasks: ", len(taskManager.PendingTasks.PendingQueue))
+			}
+
 		}
 	}()
 

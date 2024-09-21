@@ -1,6 +1,8 @@
 package tasks
 
-import "time"
+import (
+	"time"
+)
 
 func GetTaskManager() *TaskManager {
 	once.Do(func() {
@@ -27,8 +29,11 @@ func (tm *TaskManager) MoveAddedRequest(prompt string, done chan ResponseChan) {
 }
 
 func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan, initialTime time.Time) chan ResponseChan {
+
 	tm.AllTasks.TasksMu.RLock()
-	defer tm.AllTasks.TasksMu.RUnlock()
+	defer func() {
+		tm.AllTasks.TasksMu.RUnlock()
+	}()
 
 	var leastBusyTask *TaskObject
 	minQueueLength := -1
@@ -75,31 +80,40 @@ func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan,
 	if !taskAdded {
 
 		taskManagerInstance.PendingTasks.PendingMu.Lock()
-		taskManagerInstance.PendingTasks.PendingTasks = append(taskManagerInstance.PendingTasks.PendingTasks, &TaskObject{
-			ApiKey: "pending",
-			QueuedProcesses: []*QueuedProcess{
-				{Prompt: prompt, Done: done, TimeStarted: initialTime},
-			},
+
+		taskManagerInstance.PendingTasks.PendingQueue = append(taskManagerInstance.PendingTasks.PendingQueue, &QueuedProcess{
+			Prompt:      prompt,
+			Done:        done,
+			TimeStarted: initialTime,
 		})
 		taskManagerInstance.PendingTasks.PendingMu.Unlock()
+
 	}
 
 	return done
 }
 
 func (tm *TaskManager) CheckPendingTasks(task *TaskObject) {
+
 	tm.PendingTasks.PendingMu.Lock()
 	defer tm.PendingTasks.PendingMu.Unlock()
 
-	for _, pendingTask := range tm.PendingTasks.PendingTasks {
-
-		for _, queuedProcess := range pendingTask.QueuedProcesses {
-			taskManagerInstance.MoveAddedRequest(queuedProcess.Prompt, queuedProcess.Done)
-		}
+	if len(tm.PendingTasks.PendingQueue) == 0 {
+		return
 	}
 
-}
+	pendingTasks := make([]*QueuedProcess, len(tm.PendingTasks.PendingQueue))
+	copy(pendingTasks, tm.PendingTasks.PendingQueue)
+	tm.PendingTasks.PendingQueue = nil
 
+	tm.PendingTasks.PendingMu.Unlock()
+
+	for _, pendingTask := range pendingTasks {
+		tm.addRequestInternal(pendingTask.Prompt, pendingTask.Done, pendingTask.TimeStarted)
+	}
+
+	tm.PendingTasks.PendingMu.Lock()
+}
 func (tm *TaskManager) RemoveRequest(prompt string, task *TaskObject) {
 	task.TaskMu.Lock()
 	defer task.TaskMu.Unlock()
@@ -115,8 +129,8 @@ func (tm *TaskManager) RemoveRequest(prompt string, task *TaskObject) {
 }
 
 func (tm *TaskManager) TaskQueueUnloaded(task *TaskObject) {
-	tm.AllTasks.TasksMu.Lock()
-	defer tm.AllTasks.TasksMu.Unlock()
+	tm.AllTasks.TasksMu.RLock()
+	defer tm.AllTasks.TasksMu.RUnlock()
 
 	var largestQueue *TaskObject
 	var largestQueueLength int = -1
@@ -157,10 +171,22 @@ func (tm *TaskManager) TaskQueueUnloaded(task *TaskObject) {
 
 		}
 	}
+
+	task.TaskMu.Lock()
+	queueEmpty := len(task.QueuedProcesses) == 0
+	task.TaskMu.Unlock()
+
+	if queueEmpty {
+		go taskManagerInstance.CheckPendingTasks(task)
+	}
+
 }
 
 func (tm *TaskManager) PingProcessor(key string) {
 
 	task := tm.AllTasks.Tasks[key]
+	if task.IsProcessing {
+		return
+	}
 	go task.ProcessTasks()
 }
