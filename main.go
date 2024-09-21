@@ -80,6 +80,10 @@ func SkipLoggingMiddleware(next http.Handler) http.Handler {
 }
 
 func CheckAccessKeyMiddleware(next http.Handler) http.Handler {
+	isProduction := os.Getenv("ENVIRONMENT") == "PRODUCTION"
+	if !isProduction {
+		return next
+	}
 	accessKey := os.Getenv("ACCESS_KEY")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/health" {
