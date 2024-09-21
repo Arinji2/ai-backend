@@ -60,7 +60,9 @@ func SetupTasks(optionalKeys []JsonKeys) (*TaskObjects, *PendingTaskObjects) {
 			QueuedProcesses: make([]*QueuedProcess, 0),
 		}
 		tasks.Tasks[trimmedKey] = taskObject
-		custom_log.Logger.Info("Loaded Task Key:", keyData.Name)
+		if optionalKeys == nil {
+			custom_log.Logger.Info("Loaded Task Key:", keyData.Name)
+		}
 	}
 
 	pendingTasks := &PendingTaskObjects{
