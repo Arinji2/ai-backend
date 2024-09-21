@@ -30,7 +30,7 @@ func writeResponse(w http.ResponseWriter, response string) {
 func CompletionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
-	ctx, cancel := context.WithTimeout(ctx, time.Minute*5)
+	ctx, cancel := context.WithTimeout(ctx, time.Hour*1)
 	defer cancel()
 
 	r = r.WithContext(ctx)
