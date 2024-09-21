@@ -117,7 +117,7 @@ func (task *TaskObject) UpdateOverloaded() {
 				readyTime := int(math.Round(time.Since(timeForOverloaded).Seconds()))
 				custom_log.Logger.Warn(fmt.Sprintf("%s is ready in %d seconds", task.DisplayName, readyTime))
 
-				taskManagerInstance.TaskQueueUnloaded(task)
+				taskManagerInstance.TaskQueueUnloaded(task, false)
 				taskManagerInstance.CheckPendingTasks(task)
 				break
 			}
@@ -136,7 +136,7 @@ func (taskQueue *TaskObject) MoveQueueOut() {
 		wg.Add(1)
 		go func(t *QueuedProcess) {
 			defer wg.Done()
-			taskManagerInstance.MoveAddedRequest(t.Prompt, t.Done)
+			taskManagerInstance.MoveAddedRequest(t.Prompt, t.Done, false)
 		}(task)
 	}
 	taskQueue.QueuedProcesses = []*QueuedProcess{}

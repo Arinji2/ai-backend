@@ -22,9 +22,9 @@ func (tm *TaskManager) AddRequest(prompt string, testingMode bool) chan Response
 	return tm.addRequestInternal(prompt, nil, time.Now(), testingMode)
 }
 
-func (tm *TaskManager) MoveAddedRequest(prompt string, done chan ResponseChan) {
+func (tm *TaskManager) MoveAddedRequest(prompt string, done chan ResponseChan, testingMode bool) {
 
-	tm.addRequestInternal(prompt, done, time.Time{}, false)
+	tm.addRequestInternal(prompt, done, time.Time{}, testingMode)
 
 }
 
@@ -132,7 +132,7 @@ func (tm *TaskManager) RemoveRequest(prompt string, task *TaskObject) {
 
 }
 
-func (tm *TaskManager) TaskQueueUnloaded(task *TaskObject) {
+func (tm *TaskManager) TaskQueueUnloaded(task *TaskObject, testingMode bool) {
 	tm.AllTasks.TasksMu.RLock()
 	defer tm.AllTasks.TasksMu.RUnlock()
 
@@ -150,32 +150,45 @@ func (tm *TaskManager) TaskQueueUnloaded(task *TaskObject) {
 	}
 
 	if largestQueue != nil && largestQueueLength > 0 {
+
 		largestQueue.TaskMu.Lock()
 
 		numToMove := largestQueueLength / 2
-		for i := 0; i < numToMove; i++ {
-			task := largestQueue.QueuedProcesses[i]
-			tm.MoveAddedRequest(task.Prompt, task.Done)
-		}
-		largestQueue.QueuedProcesses = largestQueue.QueuedProcesses[numToMove:]
-		largestQueue.TaskMu.Unlock()
-	}
+		tasksToMove := make([]*QueuedProcess, numToMove)
 
+		for i := 0; i < numToMove; i++ {
+			tasksToMove[i] = largestQueue.QueuedProcesses[i]
+		}
+
+		largestQueue.QueuedProcesses = largestQueue.QueuedProcesses[numToMove:]
+
+		largestQueue.TaskMu.Unlock()
+
+		for _, task := range tasksToMove {
+			tm.MoveAddedRequest(task.Prompt, task.Done, testingMode)
+		}
+
+	}
 	for _, taskQueue := range tm.AllTasks.Tasks {
 		if len(taskQueue.QueuedProcesses) > 0 && taskQueue != largestQueue {
 			taskQueue.TaskMu.Lock()
 
-			if len(taskQueue.QueuedProcesses) > TaskDistributionThreshold {
-				task := taskQueue.QueuedProcesses[0]
-				tm.MoveAddedRequest(task.Prompt, task.Done)
-				taskQueue.QueuedProcesses = taskQueue.QueuedProcesses[1:]
+			var taskToMove *QueuedProcess
+			shouldMove := false
 
+			if len(taskQueue.QueuedProcesses) > TaskDistributionThreshold {
+				taskToMove = taskQueue.QueuedProcesses[0]
+				taskQueue.QueuedProcesses = taskQueue.QueuedProcesses[1:]
+				shouldMove = true
 			}
+
 			taskQueue.TaskMu.Unlock()
 
+			if shouldMove {
+				tm.MoveAddedRequest(taskToMove.Prompt, taskToMove.Done, testingMode)
+			}
 		}
 	}
-
 	task.TaskMu.Lock()
 	queueEmpty := len(task.QueuedProcesses) == 0
 	task.TaskMu.Unlock()
