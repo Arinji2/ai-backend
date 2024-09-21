@@ -1,6 +1,10 @@
 package tasks
 
-import "testing"
+import (
+	"testing"
+)
+
+var testingTaskManager *TaskManager
 
 func TestNewTaskManager(t *testing.T) {
 	optionalKeys := []JsonKeys{
@@ -20,4 +24,7 @@ func TestNewTaskManager(t *testing.T) {
 	if taskManager.AllTasks.Tasks["test2"].DisplayName != "test2" {
 		t.Error("Task Manager not initialized correctly")
 	}
+
+	testingTaskManager = taskManager
+
 }
