@@ -58,7 +58,7 @@ func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan,
 			task.QueuedProcesses = append(task.QueuedProcesses, &QueuedProcess{Prompt: prompt, Done: done, TimeStarted: initialTime})
 			task.TaskMu.Unlock()
 			if !testingMode {
-				go taskManagerInstance.PingProcessor(task.ApiKey)
+				go taskManagerInstance.PingProcessor(task.ApiKey, testingMode)
 			}
 			taskAdded = true
 			return done
@@ -76,7 +76,7 @@ func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan,
 		leastBusyTask.QueuedProcesses = append(leastBusyTask.QueuedProcesses, &QueuedProcess{Prompt: prompt, Done: done, TimeStarted: initialTime})
 		leastBusyTask.TaskMu.Unlock()
 		if !testingMode {
-			go taskManagerInstance.PingProcessor(leastBusyTask.ApiKey)
+			go taskManagerInstance.PingProcessor(leastBusyTask.ApiKey, testingMode)
 		}
 		taskAdded = true
 	}
@@ -199,11 +199,17 @@ func (tm *TaskManager) TaskQueueUnloaded(task *TaskObject, testingMode bool) {
 
 }
 
-func (tm *TaskManager) PingProcessor(key string) {
+// we return here for testing if PingProcessor is able to handle processing tasks
+func (tm *TaskManager) PingProcessor(key string, testingMode bool) bool {
 
 	task := tm.AllTasks.Tasks[key]
 	if task.IsProcessing {
-		return
+		return true
+	}
+
+	if testingMode {
+		return false
 	}
 	go task.ProcessTasks()
+	return false
 }
