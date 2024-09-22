@@ -28,7 +28,7 @@ func singleQueueOverload(t *testing.T) {
 
 	queue := taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses[0]
 	taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses = taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses[1:]
-	taskManagerInstance.AllTasks.Tasks["test1"].UpdateOverloaded(queue, true, readyChan, nil)
+	taskManagerInstance.AllTasks.Tasks["test1"].UpdateOverloaded(queue, readyChan, nil)
 
 	secondQueuedProcesses := len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses)
 	if secondQueuedProcesses != 8 {
@@ -93,10 +93,10 @@ func TestUpdateOverloaded(t *testing.T) {
 
 	queueOne := taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses[0]
 	taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses = taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses[1:]
-	taskManagerInstance.AllTasks.Tasks["test1"].UpdateOverloaded(queueOne, true, readyChanOne, pendingChanOne)
+	taskManagerInstance.AllTasks.Tasks["test1"].UpdateOverloaded(queueOne, readyChanOne, pendingChanOne)
 	queueTwo := taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses[0]
 	taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses = taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses[1:]
-	taskManagerInstance.AllTasks.Tasks["test2"].UpdateOverloaded(queueTwo, true, readyChanTwo, pendingChanTwo)
+	taskManagerInstance.AllTasks.Tasks["test2"].UpdateOverloaded(queueTwo, readyChanTwo, pendingChanTwo)
 
 	if len(taskManagerInstance.PendingTasks.PendingQueue) != 8 {
 		t.Error("Pending tasks not adding up to 8", len(taskManagerInstance.PendingTasks.PendingQueue))

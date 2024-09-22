@@ -31,7 +31,7 @@ func TestNewTaskManager(t *testing.T) {
 
 func TestAddRequest(t *testing.T) {
 	TestNewTaskManager(t)
-	taskManagerInstance.AddRequest("test", true)
+	taskManagerInstance.AddRequest("test")
 
 	firstQueuedProcesses := len(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses)
 	secondQueuedProcesses := len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses)
@@ -45,7 +45,7 @@ func TestAddRequest(t *testing.T) {
 	totalRequests := 10
 
 	for i := 0; i < totalRequests; i++ {
-		taskManagerInstance.AddRequest(fmt.Sprintf("test%d", i), true)
+		taskManagerInstance.AddRequest(fmt.Sprintf("test%d", i))
 	}
 
 	firstQueuedProcesses = len(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses)
@@ -74,7 +74,7 @@ func TestTaskQueueUnloaded(t *testing.T) {
 		})
 
 	}
-	taskManagerInstance.TaskQueueUnloaded(taskManagerInstance.AllTasks.Tasks["test2"], true)
+	taskManagerInstance.TaskQueueUnloaded(taskManagerInstance.AllTasks.Tasks["test2"])
 
 	firstQueuedProcesses := len(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses)
 	secondQueuedProcesses := len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses)
@@ -95,14 +95,14 @@ func TestPingProcessor(t *testing.T) {
 	taskManagerInstance.AllTasks.Tasks["test2"].IsProcessing = true
 
 	for i := 0; i < 10; i++ {
-		taskManagerInstance.AddRequest(fmt.Sprintf("test%d", i), true)
+		taskManagerInstance.AddRequest(fmt.Sprintf("test%d", i))
 	}
 
-	if !taskManagerInstance.PingProcessor("test1", true) {
+	if !taskManagerInstance.PingProcessor("test1") {
 		t.Error("PingProcessor is not able to handle processing tasks")
 	}
 
-	if !taskManagerInstance.PingProcessor("test2", true) {
+	if !taskManagerInstance.PingProcessor("test2") {
 		t.Error("PingProcessor is not able to handle processing tasks")
 	}
 

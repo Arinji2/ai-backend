@@ -13,22 +13,22 @@ func GetTaskManager() *TaskManager {
 
 func NewTaskManager(optionalKeys []JsonKeys) *TaskManager {
 	tasks, pendingTasks := SetupTasks(optionalKeys)
-	taskManager := &TaskManager{AllTasks: tasks, PendingTasks: pendingTasks}
+	taskManager := &TaskManager{AllTasks: tasks, PendingTasks: pendingTasks, IsTesting: optionalKeys != nil}
 
 	return taskManager
 }
 
-func (tm *TaskManager) AddRequest(prompt string, testingMode bool) chan ResponseChan {
-	return tm.addRequestInternal(prompt, nil, time.Now(), testingMode)
+func (tm *TaskManager) AddRequest(prompt string) chan ResponseChan {
+	return tm.addRequestInternal(prompt, nil, time.Now())
 }
 
-func (tm *TaskManager) MoveAddedRequest(prompt string, done chan ResponseChan, testingMode bool) {
+func (tm *TaskManager) MoveAddedRequest(prompt string, done chan ResponseChan) {
 
-	tm.addRequestInternal(prompt, done, time.Time{}, testingMode)
+	tm.addRequestInternal(prompt, done, time.Time{})
 
 }
 
-func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan, initialTime time.Time, testingMode bool) chan ResponseChan {
+func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan, initialTime time.Time) chan ResponseChan {
 
 	tm.AllTasks.TasksMu.RLock()
 	defer func() {
@@ -57,8 +57,8 @@ func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan,
 
 			task.QueuedProcesses = append(task.QueuedProcesses, &QueuedProcess{Prompt: prompt, Done: done, TimeStarted: initialTime})
 			task.TaskMu.Unlock()
-			if !testingMode {
-				go taskManagerInstance.PingProcessor(task.ApiKey, testingMode)
+			if !tm.IsTesting {
+				go taskManagerInstance.PingProcessor(task.ApiKey)
 			}
 			taskAdded = true
 			return done
@@ -75,8 +75,8 @@ func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan,
 		leastBusyTask.TaskMu.Lock()
 		leastBusyTask.QueuedProcesses = append(leastBusyTask.QueuedProcesses, &QueuedProcess{Prompt: prompt, Done: done, TimeStarted: initialTime})
 		leastBusyTask.TaskMu.Unlock()
-		if !testingMode {
-			go taskManagerInstance.PingProcessor(leastBusyTask.ApiKey, testingMode)
+		if !tm.IsTesting {
+			go taskManagerInstance.PingProcessor(leastBusyTask.ApiKey)
 		}
 		taskAdded = true
 	}
@@ -97,7 +97,7 @@ func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan,
 	return done
 }
 
-func (tm *TaskManager) CheckPendingTasks(task *TaskObject, testingMode bool, readyChan chan bool) {
+func (tm *TaskManager) CheckPendingTasks(task *TaskObject, readyChan chan bool) {
 
 	tm.PendingTasks.PendingMu.Lock()
 	defer tm.PendingTasks.PendingMu.Unlock()
@@ -112,7 +112,7 @@ func (tm *TaskManager) CheckPendingTasks(task *TaskObject, testingMode bool, rea
 
 	for _, pendingTask := range pendingTasks {
 
-		tm.addRequestInternal(pendingTask.Prompt, pendingTask.Done, pendingTask.TimeStarted, testingMode)
+		tm.addRequestInternal(pendingTask.Prompt, pendingTask.Done, pendingTask.TimeStarted)
 	}
 
 	if readyChan != nil {
@@ -134,7 +134,7 @@ func (tm *TaskManager) RemoveRequest(prompt string, task *TaskObject) {
 
 }
 
-func (tm *TaskManager) TaskQueueUnloaded(task *TaskObject, testingMode bool) {
+func (tm *TaskManager) TaskQueueUnloaded(task *TaskObject) {
 	tm.AllTasks.TasksMu.RLock()
 	defer tm.AllTasks.TasksMu.RUnlock()
 
@@ -167,7 +167,7 @@ func (tm *TaskManager) TaskQueueUnloaded(task *TaskObject, testingMode bool) {
 		largestQueue.TaskMu.Unlock()
 
 		for _, task := range tasksToMove {
-			tm.MoveAddedRequest(task.Prompt, task.Done, testingMode)
+			tm.MoveAddedRequest(task.Prompt, task.Done)
 		}
 
 	}
@@ -187,24 +187,24 @@ func (tm *TaskManager) TaskQueueUnloaded(task *TaskObject, testingMode bool) {
 			taskQueue.TaskMu.Unlock()
 
 			if shouldMove {
-				tm.MoveAddedRequest(taskToMove.Prompt, taskToMove.Done, testingMode)
+				tm.MoveAddedRequest(taskToMove.Prompt, taskToMove.Done)
 			}
 		}
 	}
 
-	go taskManagerInstance.CheckPendingTasks(task, testingMode, nil)
+	go taskManagerInstance.CheckPendingTasks(task, nil)
 
 }
 
 // we return here for testing if PingProcessor is able to handle processing tasks
-func (tm *TaskManager) PingProcessor(key string, testingMode bool) bool {
+func (tm *TaskManager) PingProcessor(key string) bool {
 
 	task := tm.AllTasks.Tasks[key]
 	if task.IsProcessing {
 		return true
 	}
 
-	if testingMode {
+	if tm.IsTesting {
 		return false
 	}
 

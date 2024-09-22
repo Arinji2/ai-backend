@@ -34,6 +34,7 @@ type PendingTaskObjects struct {
 type TaskManager struct {
 	AllTasks     *TaskObjects
 	PendingTasks *PendingTaskObjects
+	IsTesting    bool
 }
 
 type ResponseChan struct {
