@@ -20,7 +20,7 @@ func (task *TaskObject) ProcessTasks() {
 		task.IsProcessing = false
 		task.TaskMu.Unlock()
 
-		taskManagerInstance.CheckPendingTasks(task)
+		taskManagerInstance.CheckPendingTasks(task, false, nil)
 	}()
 
 	for len(task.QueuedProcesses) > 0 {
@@ -36,7 +36,7 @@ func (task *TaskObject) ProcessTasks() {
 
 			if err.Error() == "googleapi: Error 429: Resource has been exhausted (e.g. check quota)." {
 
-				task.UpdateOverloaded(queue, false, nil)
+				task.UpdateOverloaded(queue, false, nil, nil)
 				continue
 			}
 			queue.Retries++
@@ -72,7 +72,7 @@ func (process *QueuedProcess) ErrorWithProcess(err error) {
 	}
 }
 
-func (task *TaskObject) UpdateOverloaded(queue *QueuedProcess, testingMode bool, readyChan chan bool) {
+func (task *TaskObject) UpdateOverloaded(queue *QueuedProcess, testingMode bool, readyChan chan bool, pendingChan chan bool) {
 	if task.IsOverloaded {
 		return
 	}
@@ -92,7 +92,7 @@ func (task *TaskObject) UpdateOverloaded(queue *QueuedProcess, testingMode bool,
 		if !testingMode {
 			ticker = time.NewTicker(time.Second * 5)
 		} else {
-			ticker = time.NewTicker(time.Second * 3)
+			ticker = time.NewTicker(time.Second * 1)
 		}
 		defer ticker.Stop()
 
@@ -113,10 +113,15 @@ func (task *TaskObject) UpdateOverloaded(queue *QueuedProcess, testingMode bool,
 				custom_log.Logger.Warn(fmt.Sprintf("%s is ready in %d seconds", task.DisplayName, readyTime))
 
 				taskManagerInstance.TaskQueueUnloaded(task, testingMode)
-				taskManagerInstance.CheckPendingTasks(task)
+
+				taskManagerInstance.CheckPendingTasks(task, testingMode, pendingChan)
 
 				if readyChan != nil {
 					readyChan <- true
+				}
+
+				if pendingChan != nil {
+					pendingChan <- true
 				}
 
 				break

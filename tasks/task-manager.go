@@ -97,7 +97,7 @@ func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan,
 	return done
 }
 
-func (tm *TaskManager) CheckPendingTasks(task *TaskObject) {
+func (tm *TaskManager) CheckPendingTasks(task *TaskObject, testingMode bool, readyChan chan bool) {
 
 	tm.PendingTasks.PendingMu.Lock()
 	defer tm.PendingTasks.PendingMu.Unlock()
@@ -110,13 +110,15 @@ func (tm *TaskManager) CheckPendingTasks(task *TaskObject) {
 	copy(pendingTasks, tm.PendingTasks.PendingQueue)
 	tm.PendingTasks.PendingQueue = nil
 
-	tm.PendingTasks.PendingMu.Unlock()
-
 	for _, pendingTask := range pendingTasks {
-		tm.addRequestInternal(pendingTask.Prompt, pendingTask.Done, pendingTask.TimeStarted, false)
+
+		tm.addRequestInternal(pendingTask.Prompt, pendingTask.Done, pendingTask.TimeStarted, testingMode)
 	}
 
-	tm.PendingTasks.PendingMu.Lock()
+	if readyChan != nil {
+		readyChan <- true
+	}
+
 }
 func (tm *TaskManager) RemoveRequest(prompt string, task *TaskObject) {
 	task.TaskMu.Lock()
@@ -189,13 +191,8 @@ func (tm *TaskManager) TaskQueueUnloaded(task *TaskObject, testingMode bool) {
 			}
 		}
 	}
-	task.TaskMu.Lock()
-	queueEmpty := len(task.QueuedProcesses) == 0
-	task.TaskMu.Unlock()
 
-	if queueEmpty {
-		go taskManagerInstance.CheckPendingTasks(task)
-	}
+	go taskManagerInstance.CheckPendingTasks(task, testingMode, nil)
 
 }
 
@@ -210,6 +207,7 @@ func (tm *TaskManager) PingProcessor(key string, testingMode bool) bool {
 	if testingMode {
 		return false
 	}
+
 	go task.ProcessTasks()
 	return false
 }
