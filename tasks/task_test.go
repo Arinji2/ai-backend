@@ -32,6 +32,7 @@ func TestUpdateOverloaded(t *testing.T) {
 	if secondQueuedProcesses != 8 {
 		t.Error("Tasks not adding up to 8", secondQueuedProcesses)
 	}
+	fmt.Println(secondQueuedProcesses)
 
 	tries := make(chan struct{}, 7)
 
@@ -61,5 +62,17 @@ func TestUpdateOverloaded(t *testing.T) {
 
 	if len(tries) > 2 {
 		t.Error("Task took more than 2 tries", len(tries))
+	}
+	firstQueuedProcesses := len(testingTaskManager.AllTasks.Tasks["test1"].QueuedProcesses)
+	secondQueuedProcesses = len(testingTaskManager.AllTasks.Tasks["test2"].QueuedProcesses)
+
+	fmt.Println(firstQueuedProcesses, secondQueuedProcesses)
+
+	if secondQueuedProcesses == 8 {
+		t.Error("Tasks not distributing correctly")
+	}
+
+	if firstQueuedProcesses+secondQueuedProcesses != 8 {
+		t.Error("Tasks not adding up to 8", firstQueuedProcesses, secondQueuedProcesses)
 	}
 }

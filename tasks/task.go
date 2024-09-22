@@ -112,7 +112,7 @@ func (task *TaskObject) UpdateOverloaded(queue *QueuedProcess, testingMode bool)
 				readyTime := int(math.Round(time.Since(timeForOverloaded).Seconds()))
 				custom_log.Logger.Warn(fmt.Sprintf("%s is ready in %d seconds", task.DisplayName, readyTime))
 
-				taskManagerInstance.TaskQueueUnloaded(task, false)
+				taskManagerInstance.TaskQueueUnloaded(task, testingMode)
 				taskManagerInstance.CheckPendingTasks(task)
 				break
 			}
