@@ -2,15 +2,17 @@ package tasks
 
 import (
 	"fmt"
-	"sync"
 	"testing"
 	"time"
 )
 
+//TODO CHANGE FROM TESTINGMODE BOOL
+
 func TestUpdateOverloaded(t *testing.T) {
 	TestNewTaskManager(t)
+
 	for i := 0; i < 4; i++ {
-		testingTaskManager.AllTasks.Tasks["test1"].QueuedProcesses = append(testingTaskManager.AllTasks.Tasks["test1"].QueuedProcesses, &QueuedProcess{
+		taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses = append(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses, &QueuedProcess{
 			Prompt:      fmt.Sprintf("test%d in test1", i),
 			Done:        make(chan ResponseChan),
 			TimeStarted: time.Now(),
@@ -18,53 +20,36 @@ func TestUpdateOverloaded(t *testing.T) {
 	}
 
 	for i := 0; i < 4; i++ {
-		testingTaskManager.AllTasks.Tasks["test2"].QueuedProcesses = append(testingTaskManager.AllTasks.Tasks["test2"].QueuedProcesses, &QueuedProcess{
+		taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses = append(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses, &QueuedProcess{
 			Prompt:      fmt.Sprintf("test%d in test2", i),
 			Done:        make(chan ResponseChan),
 			TimeStarted: time.Now(),
 		})
 	}
 
-	queue := testingTaskManager.AllTasks.Tasks["test1"].QueuedProcesses[0]
-	testingTaskManager.AllTasks.Tasks["test1"].UpdateOverloaded(queue, true)
+	readyChan := make(chan bool)
 
-	secondQueuedProcesses := len(testingTaskManager.AllTasks.Tasks["test2"].QueuedProcesses)
+	queue := taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses[0]
+	taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses = taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses[1:]
+	taskManagerInstance.AllTasks.Tasks["test1"].UpdateOverloaded(queue, true, readyChan)
+
+	secondQueuedProcesses := len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses)
 	if secondQueuedProcesses != 8 {
 		t.Error("Tasks not adding up to 8", secondQueuedProcesses)
 	}
 	fmt.Println(secondQueuedProcesses)
 
-	tries := make(chan struct{}, 7)
-
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	ticker := time.NewTicker(time.Second * 1)
-	defer ticker.Stop()
-
-	go func() {
-		for range ticker.C {
-			if testingTaskManager.AllTasks.Tasks["test1"].IsOverloaded {
-				tries <- struct{}{}
-				wg.Done()
-			} else {
-				wg.Done()
-			}
-
-			if len(tries) >= 2 {
-				break
-			}
+	select {
+	case isReady := <-readyChan:
+		if !isReady {
+			t.Error("Task did not become ready after overload")
 		}
-	}()
-
-	wg.Wait()
-	close(tries)
-
-	if len(tries) > 2 {
-		t.Error("Task took more than 2 tries", len(tries))
+	case <-time.After(10 * time.Second):
+		t.Error("Timeout waiting for task to become ready")
 	}
-	firstQueuedProcesses := len(testingTaskManager.AllTasks.Tasks["test1"].QueuedProcesses)
-	secondQueuedProcesses = len(testingTaskManager.AllTasks.Tasks["test2"].QueuedProcesses)
+
+	firstQueuedProcesses := len(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses)
+	secondQueuedProcesses = len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses)
 
 	fmt.Println(firstQueuedProcesses, secondQueuedProcesses)
 

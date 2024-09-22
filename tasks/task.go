@@ -36,7 +36,7 @@ func (task *TaskObject) ProcessTasks() {
 
 			if err.Error() == "googleapi: Error 429: Resource has been exhausted (e.g. check quota)." {
 
-				task.UpdateOverloaded(queue, false)
+				task.UpdateOverloaded(queue, false, nil)
 				continue
 			}
 			queue.Retries++
@@ -72,30 +72,31 @@ func (process *QueuedProcess) ErrorWithProcess(err error) {
 	}
 }
 
-func (task *TaskObject) UpdateOverloaded(queue *QueuedProcess, testingMode bool) {
+func (task *TaskObject) UpdateOverloaded(queue *QueuedProcess, testingMode bool, readyChan chan bool) {
 	if task.IsOverloaded {
 		return
 	}
 	custom_log.Logger.Warn(fmt.Sprintf("%s is overloaded", task.DisplayName))
 	timeForOverloaded := time.Now()
+
 	task.TaskMu.Lock()
 	task.IsOverloaded = true
 	task.QueuedProcesses = append(task.QueuedProcesses, queue)
 
 	task.TaskMu.Unlock()
 
-	task.MoveQueueOut()
+	task.MoveQueueOut(testingMode)
 
 	go func() {
-
 		var ticker *time.Ticker
 		if !testingMode {
 			ticker = time.NewTicker(time.Second * 5)
 		} else {
-			ticker = time.NewTicker(time.Second * 1)
+			ticker = time.NewTicker(time.Second * 3)
 		}
+		defer ticker.Stop()
+
 		for range ticker.C {
-			defer ticker.Stop()
 			var isReady bool
 			if testingMode {
 				isReady = true
@@ -104,23 +105,27 @@ func (task *TaskObject) UpdateOverloaded(queue *QueuedProcess, testingMode bool)
 			}
 
 			if isReady {
-
 				task.TaskMu.Lock()
 				task.IsOverloaded = false
-
 				task.TaskMu.Unlock()
+
 				readyTime := int(math.Round(time.Since(timeForOverloaded).Seconds()))
 				custom_log.Logger.Warn(fmt.Sprintf("%s is ready in %d seconds", task.DisplayName, readyTime))
 
 				taskManagerInstance.TaskQueueUnloaded(task, testingMode)
 				taskManagerInstance.CheckPendingTasks(task)
+
+				if readyChan != nil {
+					readyChan <- true
+				}
+
 				break
 			}
 		}
 	}()
 }
 
-func (taskQueue *TaskObject) MoveQueueOut() {
+func (taskQueue *TaskObject) MoveQueueOut(testingMode bool) {
 	taskQueue.TaskMu.Lock()
 	defer taskQueue.TaskMu.Unlock()
 	queueCopy := make([]*QueuedProcess, len(taskQueue.QueuedProcesses))
@@ -131,7 +136,7 @@ func (taskQueue *TaskObject) MoveQueueOut() {
 		wg.Add(1)
 		go func(t *QueuedProcess) {
 			defer wg.Done()
-			taskManagerInstance.MoveAddedRequest(t.Prompt, t.Done, false)
+			taskManagerInstance.MoveAddedRequest(t.Prompt, t.Done, testingMode)
 		}(task)
 	}
 	taskQueue.QueuedProcesses = []*QueuedProcess{}
