@@ -38,7 +38,11 @@ func mockAddingRequests(t *testing.T, count int, task *TaskObject) {
 
 func testLoggingHelper(t *testing.T, message string, showLengths bool) {
 	if showLengths {
+		taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.RLock()
+		taskManagerInstance.AllTasks.Tasks["test2"].TaskMu.RLock()
 		t.Errorf("%s. Queue Lengths: First:: %d, Second:: %d", message, len(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses), len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses))
+		taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.RUnlock()
+		taskManagerInstance.AllTasks.Tasks["test2"].TaskMu.RUnlock()
 	} else {
 		t.Error(message)
 	}
