@@ -7,70 +7,6 @@ import (
 	"time"
 )
 
-func singleQueueOverload(t *testing.T) {
-	taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.Lock()
-	for i := 0; i < 4; i++ {
-		taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses = append(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses, &QueuedProcess{
-			Prompt:      fmt.Sprintf("test%d in test1", i),
-			Done:        make(chan ResponseChan),
-			TimeStarted: time.Now(),
-		})
-	}
-	taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.Unlock()
-	taskManagerInstance.AllTasks.Tasks["test2"].TaskMu.Lock()
-	for i := 0; i < 4; i++ {
-		taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses = append(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses, &QueuedProcess{
-			Prompt:      fmt.Sprintf("test%d in test2", i),
-			Done:        make(chan ResponseChan),
-			TimeStarted: time.Now(),
-		})
-	}
-	taskManagerInstance.AllTasks.Tasks["test2"].TaskMu.Unlock()
-
-	readyChan := make(chan bool)
-	taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.RLock()
-	queue := taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses[0]
-	taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.RUnlock()
-	taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.Lock()
-	taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses = taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses[1:]
-	taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.Unlock()
-	taskManagerInstance.AllTasks.Tasks["test1"].UpdateOverloaded(queue, readyChan, nil)
-	taskManagerInstance.AllTasks.Tasks["test2"].TaskMu.RLock()
-	secondQueuedProcesses := len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses)
-	if secondQueuedProcesses != 8 {
-		t.Error("Tasks not adding up to 8", secondQueuedProcesses)
-	}
-	taskManagerInstance.AllTasks.Tasks["test2"].TaskMu.RUnlock()
-
-	select {
-	case isReady := <-readyChan:
-		if !isReady {
-			t.Error("Task did not become ready after overload")
-		}
-	case <-time.After(10 * time.Second):
-		t.Error("Timeout waiting for task to become ready")
-	}
-
-	firstQueuedProcesses := len(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses)
-	secondQueuedProcesses = len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses)
-
-	fmt.Println(firstQueuedProcesses, secondQueuedProcesses)
-
-	if secondQueuedProcesses == 8 {
-		t.Error("Tasks not distributing correctly")
-	}
-
-	if firstQueuedProcesses+secondQueuedProcesses != 8 {
-		t.Error("Tasks not adding up to 8", firstQueuedProcesses, secondQueuedProcesses)
-	}
-
-	taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses = []*QueuedProcess{}
-	taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses = []*QueuedProcess{}
-
-	if len(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses) != 0 || len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses) != 0 {
-		t.Error("Tasks not empty after removing", len(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses), len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses))
-	}
-}
 func TestUpdateOverloaded(t *testing.T) {
 	TestNewTaskManager(t)
 
@@ -199,4 +135,49 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 	case <-time.After(timeout):
 		return true // timed out
 	}
+}
+
+func singleQueueOverload(t *testing.T) {
+	taskQueueOne, _ := assignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test1"])
+	taskQueueTwo, _ := assignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test2"])
+	totalRequests := 8
+
+	mockAddingRequests(t, (totalRequests / 2), taskQueueOne)
+	mockAddingRequests(t, (totalRequests / 2), taskQueueTwo)
+	readyChan := make(chan bool)
+
+	taskQueueOne.TaskMu.Lock()
+	queue := taskQueueOne.QueuedProcesses[0]
+	taskQueueOne.QueuedProcesses = taskQueueOne.QueuedProcesses[1:]
+	taskQueueOne.TaskMu.Unlock()
+
+	taskQueueOne.UpdateOverloaded(queue, readyChan, nil)
+
+	_, secondQueuedProcesses := assignTaskAndQueue(t, taskQueueTwo)
+	if secondQueuedProcesses != totalRequests {
+		testLoggingHelper(t, fmt.Sprintf("All requests not moved to Queue2. Total:: %d", totalRequests), true)
+	}
+
+	select {
+	case isReady := <-readyChan:
+		if !isReady {
+			t.Error("Queue 1 did not become ready after overload")
+		}
+	case <-time.After(10 * time.Second):
+		t.Error("Timeout waiting for queue 1 to become ready")
+	}
+
+	_, firstQueuedProcesses := assignTaskAndQueue(t, taskQueueOne)
+	_, secondQueuedProcesses = assignTaskAndQueue(t, taskQueueTwo)
+
+	if secondQueuedProcesses == totalRequests || firstQueuedProcesses == totalRequests {
+		testLoggingHelper(t, "Tasks not distributing correctly among queues", true)
+	}
+
+	if firstQueuedProcesses+secondQueuedProcesses != totalRequests {
+
+		testLoggingHelper(t, fmt.Sprintf("Tasks not adding upto total (%d)", totalRequests), true)
+	}
+	resetTaskQueue(t, taskQueueOne)
+	resetTaskQueue(t, taskQueueTwo)
 }
