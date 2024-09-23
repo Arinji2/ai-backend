@@ -67,7 +67,7 @@ func CompletionsHandler(w http.ResponseWriter, r *http.Request) {
 		}, 1)
 
 		go func() {
-			response := <-taskManager.AddRequest(prompt, false)
+			response := <-taskManager.AddRequest(prompt)
 			taskCh <- struct {
 				response string
 				err      error

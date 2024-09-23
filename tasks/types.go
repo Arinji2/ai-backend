@@ -15,7 +15,7 @@ type QueuedProcess struct {
 type TaskObject struct {
 	ApiKey          string
 	QueuedProcesses []*QueuedProcess
-	TaskMu          sync.Mutex
+	TaskMu          sync.RWMutex
 	IsOverloaded    bool
 	DisplayName     string
 	IsProcessing    bool
@@ -34,6 +34,7 @@ type PendingTaskObjects struct {
 type TaskManager struct {
 	AllTasks     *TaskObjects
 	PendingTasks *PendingTaskObjects
+	IsTesting    bool
 }
 
 type ResponseChan struct {

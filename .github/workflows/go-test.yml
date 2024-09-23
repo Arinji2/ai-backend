@@ -22,7 +22,7 @@ jobs:
         run: go mod tidy
 
       - name: Run tests
-        run: go test ./... -count=1
+        run: go test -race ./... -count=10
 
   deploy:
     runs-on: ubuntu-latest

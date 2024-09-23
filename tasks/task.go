@@ -20,7 +20,7 @@ func (task *TaskObject) ProcessTasks() {
 		task.IsProcessing = false
 		task.TaskMu.Unlock()
 
-		taskManagerInstance.CheckPendingTasks(task)
+		taskManagerInstance.CheckPendingTasks(task, nil)
 	}()
 
 	for len(task.QueuedProcesses) > 0 {
@@ -36,7 +36,7 @@ func (task *TaskObject) ProcessTasks() {
 
 			if err.Error() == "googleapi: Error 429: Resource has been exhausted (e.g. check quota)." {
 
-				task.UpdateOverloaded(queue, false)
+				task.UpdateOverloaded(queue, nil, nil)
 				continue
 			}
 			queue.Retries++
@@ -72,12 +72,13 @@ func (process *QueuedProcess) ErrorWithProcess(err error) {
 	}
 }
 
-func (task *TaskObject) UpdateOverloaded(queue *QueuedProcess, testingMode bool) {
+func (task *TaskObject) UpdateOverloaded(queue *QueuedProcess, readyChan chan bool, pendingChan chan bool) {
 	if task.IsOverloaded {
 		return
 	}
 	custom_log.Logger.Warn(fmt.Sprintf("%s is overloaded", task.DisplayName))
 	timeForOverloaded := time.Now()
+
 	task.TaskMu.Lock()
 	task.IsOverloaded = true
 	task.QueuedProcesses = append(task.QueuedProcesses, queue)
@@ -87,33 +88,42 @@ func (task *TaskObject) UpdateOverloaded(queue *QueuedProcess, testingMode bool)
 	task.MoveQueueOut()
 
 	go func() {
-
 		var ticker *time.Ticker
-		if !testingMode {
+		if !taskManagerInstance.IsTesting {
 			ticker = time.NewTicker(time.Second * 5)
 		} else {
 			ticker = time.NewTicker(time.Second * 1)
 		}
+		defer ticker.Stop()
+
 		for range ticker.C {
-			defer ticker.Stop()
 			var isReady bool
-			if testingMode {
+			if taskManagerInstance.IsTesting {
 				isReady = true
 			} else {
 				isReady = GetModelStatus(task)
 			}
 
 			if isReady {
-
 				task.TaskMu.Lock()
 				task.IsOverloaded = false
-
 				task.TaskMu.Unlock()
+
 				readyTime := int(math.Round(time.Since(timeForOverloaded).Seconds()))
 				custom_log.Logger.Warn(fmt.Sprintf("%s is ready in %d seconds", task.DisplayName, readyTime))
 
-				taskManagerInstance.TaskQueueUnloaded(task, false)
-				taskManagerInstance.CheckPendingTasks(task)
+				taskManagerInstance.TaskQueueUnloaded(task)
+
+				taskManagerInstance.CheckPendingTasks(task, pendingChan)
+
+				if readyChan != nil {
+					readyChan <- true
+				}
+
+				if pendingChan != nil {
+					pendingChan <- true
+				}
+
 				break
 			}
 		}
@@ -122,24 +132,27 @@ func (task *TaskObject) UpdateOverloaded(queue *QueuedProcess, testingMode bool)
 
 func (taskQueue *TaskObject) MoveQueueOut() {
 	taskQueue.TaskMu.Lock()
-	defer taskQueue.TaskMu.Unlock()
+
 	queueCopy := make([]*QueuedProcess, len(taskQueue.QueuedProcesses))
+
 	copy(queueCopy, taskQueue.QueuedProcesses)
+	taskQueue.TaskMu.Unlock()
 
 	var wg sync.WaitGroup
 	for _, task := range queueCopy {
 		wg.Add(1)
 		go func(t *QueuedProcess) {
 			defer wg.Done()
-			taskManagerInstance.MoveAddedRequest(t.Prompt, t.Done, false)
+			taskManagerInstance.MoveAddedRequest(t.Prompt, t.Done)
 		}(task)
 	}
 	taskQueue.QueuedProcesses = []*QueuedProcess{}
 	wg.Wait()
-
+	taskQueue.TaskMu.Lock()
 	if len(taskQueue.QueuedProcesses) > 0 {
 		custom_log.Logger.Warn("Queue was not empty after clearing. Current length:", len(taskQueue.QueuedProcesses))
 	}
+	taskQueue.TaskMu.Unlock()
 }
 func recoverPanic(task *TaskObject) {
 	r := recover()
