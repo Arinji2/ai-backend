@@ -67,3 +67,17 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 		return true
 	}
 }
+
+func overloadChecker(wg *sync.WaitGroup, readyChanOne chan bool, t *testing.T) {
+	func() {
+		defer wg.Done()
+		select {
+		case isReady := <-readyChanOne:
+			if !isReady {
+				t.Error("Task one did not become ready after overload")
+			}
+		case <-time.After(10 * time.Second):
+			t.Error("Timeout waiting for task one to become ready")
+		}
+	}()
+}
