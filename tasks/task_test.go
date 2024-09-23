@@ -12,7 +12,6 @@ func TestUpdateOverloaded(t *testing.T) {
 
 	singleQueueOverload(t)
 	allQueueOverload(t)
-
 }
 
 func singleQueueOverload(t *testing.T) {
