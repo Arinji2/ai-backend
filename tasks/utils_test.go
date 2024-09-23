@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func AssignTaskAndQueue(t *testing.T, task *TaskObject) (*TaskObject, int) {
+func assignTaskAndQueue(t *testing.T, task *TaskObject) (*TaskObject, int) {
 	t.Helper()
 	task.TaskMu.RLock()
 	taskQueue := task
@@ -21,7 +21,7 @@ func AssignTaskAndQueue(t *testing.T, task *TaskObject) (*TaskObject, int) {
 
 }
 
-func MockAddingRequests(t *testing.T, count int, task *TaskObject) {
+func mockAddingRequests(t *testing.T, count int, task *TaskObject) {
 	t.Helper()
 	for i := 0; i < count; i++ {
 		task.TaskMu.Lock()
@@ -33,4 +33,12 @@ func MockAddingRequests(t *testing.T, count int, task *TaskObject) {
 		task.TaskMu.Unlock()
 	}
 
+}
+
+func testLoggingHelper(t *testing.T, message string, showLengths bool) {
+	if showLengths {
+		t.Errorf("%s. Queue Lengths: First:: %d, Second:: %d", message, len(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses), len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses))
+	} else {
+		t.Error(message)
+	}
 }

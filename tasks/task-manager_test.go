@@ -31,28 +31,30 @@ func TestNewTaskManager(t *testing.T) {
 func TestAddRequest(t *testing.T) {
 	TestNewTaskManager(t)
 	taskManagerInstance.AddRequest("test")
-	taskQueueOne, firstQueuedProcesses := AssignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test1"])
-	taskQueueTwo, secondQueuedProcesses := AssignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test2"])
+	taskQueueOne, firstQueuedProcesses := assignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test1"])
+	taskQueueTwo, secondQueuedProcesses := assignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test2"])
 
-	if (firstQueuedProcesses + secondQueuedProcesses) != 1 {
-		t.Error("Task not added correctly (1)", firstQueuedProcesses, secondQueuedProcesses)
+	totalRequests := 1
+
+	if (firstQueuedProcesses + secondQueuedProcesses) != totalRequests {
+		testLoggingHelper(t, fmt.Sprintf("Tasks not adding upto (%d)", totalRequests), true)
 	}
 
 	taskManagerInstance.RemoveRequest("test", taskQueueOne)
 	taskManagerInstance.RemoveRequest("test", taskQueueTwo)
-	totalRequests := 10
+	totalRequests = 10
 
-	MockAddingRequests(t, (totalRequests / 2), taskQueueOne)
-	MockAddingRequests(t, (totalRequests / 2), taskQueueTwo)
+	mockAddingRequests(t, (totalRequests / 2), taskQueueOne)
+	mockAddingRequests(t, (totalRequests / 2), taskQueueTwo)
 
-	_, firstQueuedProcesses = AssignTaskAndQueue(t, taskQueueOne)
-	_, secondQueuedProcesses = AssignTaskAndQueue(t, taskQueueTwo)
+	_, firstQueuedProcesses = assignTaskAndQueue(t, taskQueueOne)
+	_, secondQueuedProcesses = assignTaskAndQueue(t, taskQueueTwo)
 
 	if (firstQueuedProcesses + secondQueuedProcesses) != totalRequests {
-		t.Errorf("Task not added correctly. Total: (%d). First: (%d). Second: (%d)", totalRequests, firstQueuedProcesses, secondQueuedProcesses)
+		testLoggingHelper(t, fmt.Sprintf("Tasks not adding upto (%d)", totalRequests), true)
 	}
 	if firstQueuedProcesses == totalRequests || secondQueuedProcesses == totalRequests {
-		t.Errorf("Tasks not distributed equally. Total: (%d). First: (%d). Second: (%d)", totalRequests, firstQueuedProcesses, secondQueuedProcesses)
+		testLoggingHelper(t, "Tasks not distributed equally", true)
 	}
 
 	for i := 0; i < totalRequests; i++ {
@@ -64,23 +66,24 @@ func TestAddRequest(t *testing.T) {
 func TestTaskQueueUnloaded(t *testing.T) {
 	TestNewTaskManager(t)
 
-	taskQueueOne, _ := AssignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test1"])
-	taskQueueTwo, _ := AssignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test2"])
+	taskQueueOne, _ := assignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test1"])
+	taskQueueTwo, _ := assignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test2"])
 
 	totalRequests := 10
 
-	MockAddingRequests(t, totalRequests, taskQueueTwo)
+	mockAddingRequests(t, totalRequests, taskQueueTwo)
 	taskManagerInstance.TaskQueueUnloaded(taskQueueTwo)
 
-	_, firstQueuedProcesses := AssignTaskAndQueue(t, taskQueueOne)
-	_, secondQueuedProcesses := AssignTaskAndQueue(t, taskQueueTwo)
+	_, firstQueuedProcesses := assignTaskAndQueue(t, taskQueueOne)
+	_, secondQueuedProcesses := assignTaskAndQueue(t, taskQueueTwo)
 
 	if (firstQueuedProcesses) == totalRequests {
-		t.Error("All tasks stuck in 1st queue", firstQueuedProcesses, secondQueuedProcesses)
+		testLoggingHelper(t, fmt.Sprintf("All tasks stuck in %s queue", taskQueueOne.DisplayName), true)
 	}
 
 	if (firstQueuedProcesses + secondQueuedProcesses) != totalRequests {
-		t.Errorf("Tasks not adding upto %d. First: %d, Second: %d", totalRequests, firstQueuedProcesses, secondQueuedProcesses)
+
+		testLoggingHelper(t, fmt.Sprintf("Tasks not adding upto %d", totalRequests), true)
 	}
 
 }
