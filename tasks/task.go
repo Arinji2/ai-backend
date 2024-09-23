@@ -132,9 +132,11 @@ func (task *TaskObject) UpdateOverloaded(queue *QueuedProcess, readyChan chan bo
 
 func (taskQueue *TaskObject) MoveQueueOut() {
 	taskQueue.TaskMu.Lock()
-	defer taskQueue.TaskMu.Unlock()
+
 	queueCopy := make([]*QueuedProcess, len(taskQueue.QueuedProcesses))
+
 	copy(queueCopy, taskQueue.QueuedProcesses)
+	taskQueue.TaskMu.Unlock()
 
 	var wg sync.WaitGroup
 	for _, task := range queueCopy {
@@ -146,10 +148,11 @@ func (taskQueue *TaskObject) MoveQueueOut() {
 	}
 	taskQueue.QueuedProcesses = []*QueuedProcess{}
 	wg.Wait()
-
+	taskQueue.TaskMu.Lock()
 	if len(taskQueue.QueuedProcesses) > 0 {
 		custom_log.Logger.Warn("Queue was not empty after clearing. Current length:", len(taskQueue.QueuedProcesses))
 	}
+	taskQueue.TaskMu.Unlock()
 }
 func recoverPanic(task *TaskObject) {
 	r := recover()

@@ -8,6 +8,7 @@ import (
 )
 
 func singleQueueOverload(t *testing.T) {
+	taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.Lock()
 	for i := 0; i < 4; i++ {
 		taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses = append(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses, &QueuedProcess{
 			Prompt:      fmt.Sprintf("test%d in test1", i),
@@ -15,7 +16,8 @@ func singleQueueOverload(t *testing.T) {
 			TimeStarted: time.Now(),
 		})
 	}
-
+	taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.Unlock()
+	taskManagerInstance.AllTasks.Tasks["test2"].TaskMu.Lock()
 	for i := 0; i < 4; i++ {
 		taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses = append(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses, &QueuedProcess{
 			Prompt:      fmt.Sprintf("test%d in test2", i),
@@ -23,17 +25,22 @@ func singleQueueOverload(t *testing.T) {
 			TimeStarted: time.Now(),
 		})
 	}
+	taskManagerInstance.AllTasks.Tasks["test2"].TaskMu.Unlock()
 
 	readyChan := make(chan bool)
-
+	taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.RLock()
 	queue := taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses[0]
+	taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.RUnlock()
+	taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.Lock()
 	taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses = taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses[1:]
+	taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.Unlock()
 	taskManagerInstance.AllTasks.Tasks["test1"].UpdateOverloaded(queue, readyChan, nil)
-
+	taskManagerInstance.AllTasks.Tasks["test2"].TaskMu.RLock()
 	secondQueuedProcesses := len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses)
 	if secondQueuedProcesses != 8 {
 		t.Error("Tasks not adding up to 8", secondQueuedProcesses)
 	}
+	taskManagerInstance.AllTasks.Tasks["test2"].TaskMu.RUnlock()
 
 	select {
 	case isReady := <-readyChan:
@@ -68,7 +75,7 @@ func TestUpdateOverloaded(t *testing.T) {
 	TestNewTaskManager(t)
 
 	singleQueueOverload(t)
-
+	taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.Lock()
 	for i := 0; i < 4; i++ {
 		taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses = append(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses, &QueuedProcess{
 			Prompt:      fmt.Sprintf("test%d in test1", i),
@@ -76,7 +83,8 @@ func TestUpdateOverloaded(t *testing.T) {
 			TimeStarted: time.Now(),
 		})
 	}
-
+	taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.Unlock()
+	taskManagerInstance.AllTasks.Tasks["test2"].TaskMu.Lock()
 	for i := 0; i < 4; i++ {
 		taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses = append(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses, &QueuedProcess{
 			Prompt:      fmt.Sprintf("test%d in test2", i),
@@ -84,6 +92,7 @@ func TestUpdateOverloaded(t *testing.T) {
 			TimeStarted: time.Now(),
 		})
 	}
+	taskManagerInstance.AllTasks.Tasks["test2"].TaskMu.Unlock()
 
 	readyChanOne := make(chan bool)
 	readyChanTwo := make(chan bool)
@@ -97,10 +106,11 @@ func TestUpdateOverloaded(t *testing.T) {
 	queueTwo := taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses[0]
 	taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses = taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses[1:]
 	taskManagerInstance.AllTasks.Tasks["test2"].UpdateOverloaded(queueTwo, readyChanTwo, pendingChanTwo)
-
+	taskManagerInstance.PendingTasks.PendingMu.RLock()
 	if len(taskManagerInstance.PendingTasks.PendingQueue) != 8 {
 		t.Error("Pending tasks not adding up to 8", len(taskManagerInstance.PendingTasks.PendingQueue))
 	}
+	taskManagerInstance.PendingTasks.PendingMu.RUnlock()
 
 	var wg sync.WaitGroup
 	wg.Add(4) // We expect 4 signals
@@ -112,7 +122,6 @@ func TestUpdateOverloaded(t *testing.T) {
 			if !isReady {
 				t.Error("Task one did not become ready after overload")
 			}
-			fmt.Println("Ready One:", len(taskManagerInstance.PendingTasks.PendingQueue), len(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses), len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses))
 		case <-time.After(10 * time.Second):
 			t.Error("Timeout waiting for task one to become ready")
 		}
@@ -125,7 +134,6 @@ func TestUpdateOverloaded(t *testing.T) {
 			if !isReady {
 				t.Error("Task two did not become ready after overload")
 			}
-			fmt.Println("Ready Two:", len(taskManagerInstance.PendingTasks.PendingQueue), len(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses), len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses))
 		case <-time.After(10 * time.Second):
 			t.Error("Timeout waiting for task two to become ready")
 		}
@@ -138,7 +146,7 @@ func TestUpdateOverloaded(t *testing.T) {
 			if !isReady {
 				t.Error("Pending one did not become ready after overload")
 			}
-			fmt.Println("Pending One:", len(taskManagerInstance.PendingTasks.PendingQueue), len(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses), len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses))
+
 		case <-time.After(10 * time.Second):
 			t.Error("Timeout waiting for pending one to become ready")
 		}
@@ -151,7 +159,6 @@ func TestUpdateOverloaded(t *testing.T) {
 			if !isReady {
 				t.Error("Pending two did not become ready after overload")
 			}
-			fmt.Println("Pending Two:", len(taskManagerInstance.PendingTasks.PendingQueue), len(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses), len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses))
 		case <-time.After(10 * time.Second):
 			t.Error("Timeout waiting for pending two to become ready")
 		}
@@ -162,6 +169,8 @@ func TestUpdateOverloaded(t *testing.T) {
 		t.Error("Timeout waiting for all channels to receive signals")
 	}
 
+	taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.RLock()
+	taskManagerInstance.AllTasks.Tasks["test2"].TaskMu.RLock()
 	if len(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses)+len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses) != 8 {
 		t.Error("Tasks not adding up to 8", len(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses), len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses))
 	}
@@ -173,6 +182,8 @@ func TestUpdateOverloaded(t *testing.T) {
 	if len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses) == 0 {
 		t.Error("Test2 queue empty after overload", len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses))
 	}
+	taskManagerInstance.AllTasks.Tasks["test1"].TaskMu.RUnlock()
+	taskManagerInstance.AllTasks.Tasks["test2"].TaskMu.RUnlock()
 }
 
 // Helper function

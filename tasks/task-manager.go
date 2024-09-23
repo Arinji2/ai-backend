@@ -48,9 +48,12 @@ func (tm *TaskManager) addRequestInternal(prompt string, done chan ResponseChan,
 	}
 
 	for _, task := range tm.AllTasks.Tasks {
+		task.TaskMu.RLock()
 		if task.IsOverloaded {
+			task.TaskMu.RUnlock()
 			continue
 		}
+		task.TaskMu.RUnlock()
 		task.TaskMu.Lock()
 
 		if len(task.QueuedProcesses) == 0 && !task.IsOverloaded {

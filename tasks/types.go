@@ -15,7 +15,7 @@ type QueuedProcess struct {
 type TaskObject struct {
 	ApiKey          string
 	QueuedProcesses []*QueuedProcess
-	TaskMu          sync.Mutex
+	TaskMu          sync.RWMutex
 	IsOverloaded    bool
 	DisplayName     string
 	IsProcessing    bool
