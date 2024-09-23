@@ -42,3 +42,13 @@ func testLoggingHelper(t *testing.T, message string, showLengths bool) {
 		t.Error(message)
 	}
 }
+
+func resetTaskQueue(t *testing.T, task *TaskObject) {
+
+	task.TaskMu.Lock()
+	task.QueuedProcesses = []*QueuedProcess{}
+	if len(task.QueuedProcesses) != 0 {
+		t.Error("Queue not empty after reset", len(task.QueuedProcesses), task.DisplayName)
+	}
+	task.TaskMu.Unlock()
+}
