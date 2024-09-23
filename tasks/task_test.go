@@ -175,7 +175,6 @@ func singleQueueOverload(t *testing.T) {
 	}
 
 	if firstQueuedProcesses+secondQueuedProcesses != totalRequests {
-
 		testLoggingHelper(t, fmt.Sprintf("Tasks not adding upto total (%d)", totalRequests), true)
 	}
 	resetTaskQueue(t, taskQueueOne)
