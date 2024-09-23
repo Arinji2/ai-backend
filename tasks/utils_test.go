@@ -1,6 +1,10 @@
 package tasks
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+	"time"
+)
 
 func AssignTaskAndQueue(t *testing.T, task *TaskObject) (*TaskObject, int) {
 	t.Helper()
@@ -15,4 +19,18 @@ func AssignTaskAndQueue(t *testing.T, task *TaskObject) (*TaskObject, int) {
 
 	return taskQueue, taskQueueLength
 
+}
+
+func MockAddingRequests(t *testing.T, count int, task *TaskObject) (*TaskObject, int) {
+	t.Helper()
+	for i := 0; i < count; i++ {
+		task.TaskMu.Lock()
+		task.QueuedProcesses = append(task.QueuedProcesses, &QueuedProcess{
+			Prompt:      fmt.Sprintf("test%d for %s", i, task.DisplayName),
+			Done:        make(chan ResponseChan),
+			TimeStarted: time.Now(),
+		})
+		task.TaskMu.Unlock()
+	}
+	return task, len(task.QueuedProcesses)
 }

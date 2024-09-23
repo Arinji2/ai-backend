@@ -3,7 +3,6 @@ package tasks
 import (
 	"fmt"
 	"testing"
-	"time"
 )
 
 func TestNewTaskManager(t *testing.T) {
@@ -43,18 +42,17 @@ func TestAddRequest(t *testing.T) {
 	taskManagerInstance.RemoveRequest("test", taskQueueTwo)
 	totalRequests := 10
 
-	for i := 0; i < totalRequests; i++ {
-		taskManagerInstance.AddRequest(fmt.Sprintf("test%d", i))
-	}
+	MockAddingRequests(t, (totalRequests / 2), taskManagerInstance.AllTasks.Tasks["test1"])
+	MockAddingRequests(t, (totalRequests / 2), taskManagerInstance.AllTasks.Tasks["test2"])
 
 	_, firstQueuedProcesses = AssignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test1"])
 	_, secondQueuedProcesses = AssignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test2"])
 
 	if (firstQueuedProcesses + secondQueuedProcesses) != totalRequests {
-		t.Error("Task not added correctly (10)", firstQueuedProcesses, secondQueuedProcesses)
+		t.Errorf("Task not added correctly. Total: (%d). First: (%d). Second: (%d)", totalRequests, firstQueuedProcesses, secondQueuedProcesses)
 	}
 	if firstQueuedProcesses == totalRequests || secondQueuedProcesses == totalRequests {
-		t.Error("Tasks not distributed equally (10)", firstQueuedProcesses, secondQueuedProcesses)
+		t.Errorf("Tasks not distributed equally. Total: (%d). First: (%d). Second: (%d)", totalRequests, firstQueuedProcesses, secondQueuedProcesses)
 	}
 
 	for i := 0; i < totalRequests; i++ {
@@ -65,25 +63,21 @@ func TestAddRequest(t *testing.T) {
 
 func TestTaskQueueUnloaded(t *testing.T) {
 	TestNewTaskManager(t)
-	for i := 0; i < 10; i++ {
-		taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses = append(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses, &QueuedProcess{
-			Prompt:      fmt.Sprintf("test%d", i),
-			Done:        make(chan ResponseChan),
-			TimeStarted: time.Now(),
-		})
 
-	}
+	totalRequests := 10
+
+	MockAddingRequests(t, totalRequests, taskManagerInstance.AllTasks.Tasks["test2"])
 	taskManagerInstance.TaskQueueUnloaded(taskManagerInstance.AllTasks.Tasks["test2"])
 
-	firstQueuedProcesses := len(taskManagerInstance.AllTasks.Tasks["test1"].QueuedProcesses)
-	secondQueuedProcesses := len(taskManagerInstance.AllTasks.Tasks["test2"].QueuedProcesses)
+	_, firstQueuedProcesses := AssignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test1"])
+	_, secondQueuedProcesses := AssignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test2"])
 
-	if (firstQueuedProcesses) == 10 {
+	if (firstQueuedProcesses) == totalRequests {
 		t.Error("All tasks stuck in 1st queue", firstQueuedProcesses, secondQueuedProcesses)
 	}
 
-	if (firstQueuedProcesses + secondQueuedProcesses) != 10 {
-		t.Error("Tasks not adding upto 10", firstQueuedProcesses, secondQueuedProcesses)
+	if (firstQueuedProcesses + secondQueuedProcesses) != totalRequests {
+		t.Errorf("Tasks not adding upto %d. First: %d, Second: %d", totalRequests, firstQueuedProcesses, secondQueuedProcesses)
 	}
 
 }
