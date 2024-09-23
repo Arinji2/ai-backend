@@ -122,21 +122,6 @@ func TestUpdateOverloaded(t *testing.T) {
 	taskManagerInstance.AllTasks.Tasks["test2"].TaskMu.RUnlock()
 }
 
-// Helper function
-func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
-	c := make(chan struct{})
-	go func() {
-		defer close(c)
-		wg.Wait()
-	}()
-	select {
-	case <-c:
-		return false // completed normally
-	case <-time.After(timeout):
-		return true // timed out
-	}
-}
-
 func singleQueueOverload(t *testing.T) {
 	taskQueueOne, _ := assignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test1"])
 	taskQueueTwo, _ := assignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test2"])
