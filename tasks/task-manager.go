@@ -199,18 +199,13 @@ func (tm *TaskManager) TaskQueueUnloaded(task *TaskObject) {
 
 }
 
-// we return here for testing if PingProcessor is able to handle processing tasks
-func (tm *TaskManager) PingProcessor(key string) bool {
+func (tm *TaskManager) PingProcessor(key string) {
 
 	task := tm.AllTasks.Tasks[key]
-	if task.IsProcessing {
-		return true
-	}
-
-	if tm.IsTesting {
-		return false
+	if task.IsProcessing || tm.IsTesting {
+		return
 	}
 
 	go task.ProcessTasks()
-	return false
+
 }

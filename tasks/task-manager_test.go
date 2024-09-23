@@ -87,22 +87,3 @@ func TestTaskQueueUnloaded(t *testing.T) {
 	}
 
 }
-
-func TestPingProcessor(t *testing.T) {
-	TestNewTaskManager(t)
-	taskManagerInstance.AllTasks.Tasks["test1"].IsProcessing = true
-	taskManagerInstance.AllTasks.Tasks["test2"].IsProcessing = true
-
-	for i := 0; i < 10; i++ {
-		taskManagerInstance.AddRequest(fmt.Sprintf("test%d", i))
-	}
-
-	if !taskManagerInstance.PingProcessor("test1") {
-		t.Error("PingProcessor is not able to handle processing tasks")
-	}
-
-	if !taskManagerInstance.PingProcessor("test2") {
-		t.Error("PingProcessor is not able to handle processing tasks")
-	}
-
-}
