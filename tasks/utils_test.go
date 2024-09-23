@@ -21,7 +21,7 @@ func AssignTaskAndQueue(t *testing.T, task *TaskObject) (*TaskObject, int) {
 
 }
 
-func MockAddingRequests(t *testing.T, count int, task *TaskObject) (*TaskObject, int) {
+func MockAddingRequests(t *testing.T, count int, task *TaskObject) {
 	t.Helper()
 	for i := 0; i < count; i++ {
 		task.TaskMu.Lock()
@@ -32,5 +32,5 @@ func MockAddingRequests(t *testing.T, count int, task *TaskObject) (*TaskObject,
 		})
 		task.TaskMu.Unlock()
 	}
-	return task, len(task.QueuedProcesses)
+
 }

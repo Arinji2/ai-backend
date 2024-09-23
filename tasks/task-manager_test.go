@@ -42,11 +42,11 @@ func TestAddRequest(t *testing.T) {
 	taskManagerInstance.RemoveRequest("test", taskQueueTwo)
 	totalRequests := 10
 
-	MockAddingRequests(t, (totalRequests / 2), taskManagerInstance.AllTasks.Tasks["test1"])
-	MockAddingRequests(t, (totalRequests / 2), taskManagerInstance.AllTasks.Tasks["test2"])
+	MockAddingRequests(t, (totalRequests / 2), taskQueueOne)
+	MockAddingRequests(t, (totalRequests / 2), taskQueueTwo)
 
-	_, firstQueuedProcesses = AssignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test1"])
-	_, secondQueuedProcesses = AssignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test2"])
+	_, firstQueuedProcesses = AssignTaskAndQueue(t, taskQueueOne)
+	_, secondQueuedProcesses = AssignTaskAndQueue(t, taskQueueTwo)
 
 	if (firstQueuedProcesses + secondQueuedProcesses) != totalRequests {
 		t.Errorf("Task not added correctly. Total: (%d). First: (%d). Second: (%d)", totalRequests, firstQueuedProcesses, secondQueuedProcesses)
@@ -64,13 +64,16 @@ func TestAddRequest(t *testing.T) {
 func TestTaskQueueUnloaded(t *testing.T) {
 	TestNewTaskManager(t)
 
+	taskQueueOne, _ := AssignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test1"])
+	taskQueueTwo, _ := AssignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test2"])
+
 	totalRequests := 10
 
-	MockAddingRequests(t, totalRequests, taskManagerInstance.AllTasks.Tasks["test2"])
-	taskManagerInstance.TaskQueueUnloaded(taskManagerInstance.AllTasks.Tasks["test2"])
+	MockAddingRequests(t, totalRequests, taskQueueTwo)
+	taskManagerInstance.TaskQueueUnloaded(taskQueueTwo)
 
-	_, firstQueuedProcesses := AssignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test1"])
-	_, secondQueuedProcesses := AssignTaskAndQueue(t, taskManagerInstance.AllTasks.Tasks["test2"])
+	_, firstQueuedProcesses := AssignTaskAndQueue(t, taskQueueOne)
+	_, secondQueuedProcesses := AssignTaskAndQueue(t, taskQueueTwo)
 
 	if (firstQueuedProcesses) == totalRequests {
 		t.Error("All tasks stuck in 1st queue", firstQueuedProcesses, secondQueuedProcesses)
