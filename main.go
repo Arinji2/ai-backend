@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	_ "net/http/pprof"
+
 	"github.com/Arinji2/ai-backend/completions"
 	custom_log "github.com/Arinji2/ai-backend/logger"
 	"github.com/Arinji2/ai-backend/tasks"
@@ -55,6 +57,10 @@ func main() {
 		}
 	}()
 
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+		log.Println("Running Profiler on localhost:6060")
+	}()
 	http.ListenAndServe(":8080", r)
 }
 
