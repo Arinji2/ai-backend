@@ -21,14 +21,9 @@ import (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		isProduction := os.Getenv("ENVIRONMENT") == "PRODUCTION"
-		if !isProduction {
-			log.Fatal("Error loading .env file")
-		} else {
-			custom_log.Logger.Warn("Using Production Environment")
-		}
+		log.Fatal("Error loading .env file")
 	} else {
-		custom_log.Logger.Warn("Using Development Environment")
+		custom_log.Logger.Warn("Environment File Found")
 	}
 	r := chi.NewRouter()
 	r.Use(SkipLoggingMiddleware)
