@@ -51,9 +51,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no github_runner@${{ secrets.VPS_HOST }} << EOF > /dev/null 2>&1
             docker pull $IMAGE_NAME
-            docker stop $CONTAINER_NAME || true
-            docker rm $CONTAINER_NAME || true
-            cd /srv/dockerdata/AI-Backend
-            ./startup.sh
+            docker compose down || true
+            docker compose up -d
             docker image prune -f
           EOF
