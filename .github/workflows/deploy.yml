@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2 # Need at least 2 commits to compare changes
+          fetch-depth: 2
 
       - name: Check for .go file changes
         id: go_changes
