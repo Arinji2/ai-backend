@@ -13,11 +13,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.23"
-
       - name: Check for .go file changes
         id: go_changes
         run: |
@@ -27,7 +22,14 @@ jobs:
             echo "go_changes=false" >> $GITHUB_ENV
           fi
 
+      - name: Set up Go
+        if: env.go_changes == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
       - name: Install dependencies
+        if: env.go_changes == 'true'
         run: go mod tidy
 
       - name: Run tests
