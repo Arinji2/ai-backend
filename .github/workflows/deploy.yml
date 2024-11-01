@@ -11,10 +11,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
           go-version: "1.23"
 
@@ -35,23 +35,41 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.5.3
+        uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Check if docker-compose.yml has changed
+        id: compose_changed
+        run: |
+          if git diff --name-only HEAD HEAD~1 | grep -q '^docker-compose.yml$'; then
+            echo "compose_changed=true" >> $GITHUB_ENV
+          else
+            echo "compose_changed=false" >> $GITHUB_ENV
+          fi
+
+      - name: Copy updated docker-compose.yml to VPS
+        if: env.compose_changed == 'true'
+        run: |
+          scp -o StrictHostKeyChecking=no docker-compose.yml github_runner@${{ secrets.VPS_HOST }}:/srv/dockerdata/AI-Backend/docker-compose.yml
 
       - name: Deploy to VPS
         env:
           CONTAINER_NAME: ai-backend
           IMAGE_NAME: ghcr.io/arinji2/ai-backend:latest
         run: |
-          ssh -o StrictHostKeyChecking=no github_runner@${{ secrets.VPS_HOST }} << EOF > /dev/null 2>&1
-            docker pull $IMAGE_NAME
-            docker compose down || true
-            docker compose up -d
-            docker image prune -f
+          ssh -o StrictHostKeyChecking=no -T github_runner@${{ secrets.VPS_HOST }} << 'EOF'
+            set -e
+            {
+              docker pull $IMAGE_NAME
+              cd /srv/dockerdata/AI-Backend
+              docker compose down || true
+              docker compose up -d
+              docker image prune -f
+            } 2>&1 | grep -v "Welcome\|Last login\|Linux\|Memory\|Swap\|Docker"
           EOF
