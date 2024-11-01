@@ -7,8 +7,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-
-	custom_log "github.com/Arinji2/ai-backend/logger"
 )
 
 var (
@@ -61,7 +59,7 @@ func SetupTasks(optionalKeys []JsonKeys) (*TaskObjects, *PendingTaskObjects) {
 		}
 		tasks.Tasks[trimmedKey] = taskObject
 		if optionalKeys == nil {
-			custom_log.Logger.Info("Loaded Task Key:", keyData.Name)
+			fmt.Println("Loaded Task Key:", keyData.Name)
 		}
 	}
 

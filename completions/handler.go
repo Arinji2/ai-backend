@@ -3,12 +3,12 @@ package completions
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/Arinji2/ai-backend/input"
-	custom_log "github.com/Arinji2/ai-backend/logger"
 	"github.com/Arinji2/ai-backend/tasks"
 )
 
@@ -59,7 +59,7 @@ func CompletionsHandler(w http.ResponseWriter, r *http.Request) {
 
 		prompt := result.prompt
 		taskManager := tasks.GetTaskManager()
-		custom_log.Logger.Debug("NEW REQUEST RECEIVED")
+		fmt.Println("NEW REQUEST RECEIVED")
 
 		taskCh := make(chan struct {
 			response string
@@ -86,14 +86,14 @@ func CompletionsHandler(w http.ResponseWriter, r *http.Request) {
 			writeResponse(w, taskResult.response)
 
 		case <-ctx.Done():
-			custom_log.Logger.Warn("Task Processing Timed Out")
+			fmt.Println("Task Processing Timed Out")
 			w.WriteHeader(http.StatusGatewayTimeout)
 			w.Write([]byte("Task processing timed out"))
 		}
 
 	case <-ctx.Done():
 
-		custom_log.Logger.Warn("Request Processing Timed Out")
+		fmt.Println("Request Processing Timed Out")
 		w.WriteHeader(http.StatusGatewayTimeout)
 
 		w.Write([]byte("Request timed out"))

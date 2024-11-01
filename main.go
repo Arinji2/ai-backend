@@ -10,7 +10,6 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/Arinji2/ai-backend/completions"
-	custom_log "github.com/Arinji2/ai-backend/logger"
 	"github.com/Arinji2/ai-backend/tasks"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -23,7 +22,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	} else {
-		custom_log.Logger.Warn("Environment File Found")
+		fmt.Println("Environment File Found")
 	}
 	r := chi.NewRouter()
 	r.Use(SkipLoggingMiddleware)
@@ -42,11 +41,11 @@ func main() {
 				if len(tasks.QueuedProcesses) == 0 {
 					continue
 				}
-				custom_log.Logger.Debug("Tasks In Queue: ", tasks.DisplayName, len(tasks.QueuedProcesses))
+				fmt.Println("Tasks In Queue: ", tasks.DisplayName, len(tasks.QueuedProcesses))
 			}
 
 			if len(taskManager.PendingTasks.PendingQueue) > 0 {
-				custom_log.Logger.Debug("Pending Tasks: ", len(taskManager.PendingTasks.PendingQueue))
+				fmt.Println("Pending Tasks: ", len(taskManager.PendingTasks.PendingQueue))
 			}
 
 		}

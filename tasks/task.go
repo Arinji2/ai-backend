@@ -5,8 +5,6 @@ import (
 	"math"
 	"sync"
 	"time"
-
-	custom_log "github.com/Arinji2/ai-backend/logger"
 )
 
 func (task *TaskObject) ProcessTasks() {
@@ -52,7 +50,7 @@ func (task *TaskObject) ProcessTasks() {
 
 		loggableTime := int(math.Round(time.Since(queue.TimeStarted).Seconds()))
 
-		custom_log.Logger.Debug(fmt.Sprintf("Fulfilled By %s In %d Seconds", task.DisplayName, loggableTime))
+		fmt.Println(fmt.Sprintf("Fulfilled By %s In %d Seconds", task.DisplayName, loggableTime))
 
 		select {
 		case queue.Done <- ResponseChan{Response: response}:
@@ -76,7 +74,7 @@ func (task *TaskObject) UpdateOverloaded(queue *QueuedProcess, readyChan chan bo
 	if task.IsOverloaded {
 		return
 	}
-	custom_log.Logger.Warn(fmt.Sprintf("%s is overloaded", task.DisplayName))
+	fmt.Println(fmt.Sprintf("%s is overloaded", task.DisplayName))
 	timeForOverloaded := time.Now()
 
 	task.TaskMu.Lock()
@@ -110,7 +108,7 @@ func (task *TaskObject) UpdateOverloaded(queue *QueuedProcess, readyChan chan bo
 				task.TaskMu.Unlock()
 
 				readyTime := int(math.Round(time.Since(timeForOverloaded).Seconds()))
-				custom_log.Logger.Warn(fmt.Sprintf("%s is ready in %d seconds", task.DisplayName, readyTime))
+				fmt.Println(fmt.Sprintf("%s is ready in %d seconds", task.DisplayName, readyTime))
 
 				taskManagerInstance.TaskQueueUnloaded(task)
 
@@ -150,7 +148,7 @@ func (taskQueue *TaskObject) MoveQueueOut() {
 	wg.Wait()
 	taskQueue.TaskMu.Lock()
 	if len(taskQueue.QueuedProcesses) > 0 {
-		custom_log.Logger.Warn("Queue was not empty after clearing. Current length:", len(taskQueue.QueuedProcesses))
+		fmt.Println("Queue was not empty after clearing. Current length:", len(taskQueue.QueuedProcesses))
 	}
 	taskQueue.TaskMu.Unlock()
 }
@@ -159,5 +157,5 @@ func recoverPanic(task *TaskObject) {
 	if r == nil {
 		return
 	}
-	custom_log.Logger.Error(fmt.Sprintf("Recovered from panic in %s for %s", task.DisplayName, r))
+	fmt.Errorf(fmt.Sprintf("Recovered from panic in %s for %s", task.DisplayName, r))
 }

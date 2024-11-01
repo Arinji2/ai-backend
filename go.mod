@@ -6,7 +6,6 @@ require (
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/render v1.0.3
 	github.com/google/generative-ai-go v0.18.0
-	github.com/gookit/slog v0.5.6
 	github.com/joho/godotenv v1.5.1
 	google.golang.org/api v0.197.0
 )
@@ -27,11 +26,6 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
 	github.com/googleapis/gax-go/v2 v2.13.0 // indirect
-	github.com/gookit/color v1.5.4 // indirect
-	github.com/gookit/goutil v0.6.15 // indirect
-	github.com/gookit/gsr v0.1.0 // indirect
-	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.54.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.54.0 // indirect

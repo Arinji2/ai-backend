@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strings"
 
-	custom_log "github.com/Arinji2/ai-backend/logger"
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 )
@@ -64,7 +63,7 @@ func GetModelStatus(task *TaskObject) bool {
 	if result == "testing" {
 		return true
 	}
-	custom_log.Logger.Debug("Issue with Content", result)
+	fmt.Println("Issue with Content", result)
 	return true
 
 }
