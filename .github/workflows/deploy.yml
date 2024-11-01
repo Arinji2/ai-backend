@@ -63,13 +63,11 @@ jobs:
           CONTAINER_NAME: ai-backend
           IMAGE_NAME: ghcr.io/arinji2/ai-backend:latest
         run: |
-          ssh -o StrictHostKeyChecking=no -T github_runner@${{ secrets.VPS_HOST }} << 'EOF'
-            set -e
-            {
-              docker pull $IMAGE_NAME
-              cd /srv/dockerdata/AI-Backend
-              docker compose down || true
-              docker compose up -d
-              docker image prune -f
-            } 2>&1 | grep -v "Welcome\|Last login\|Linux\|Memory\|Swap\|Docker"
+          ssh -q -o StrictHostKeyChecking=no github_runner@${{ secrets.VPS_HOST }} << EOF 
+            echo "Connected to VPS"
+            docker pull $IMAGE_NAME
+             cd /srv/dockerdata/AI-Backend
+            docker compose down || true
+            docker compose up -d
+            docker image prune -f
           EOF
