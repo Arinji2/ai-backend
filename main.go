@@ -38,11 +38,11 @@ func main() {
 		ticker := time.NewTicker(time.Second * 10)
 		for range ticker.C {
 
-			for key, tasks := range taskManager.AllTasks.Tasks {
+			for _, tasks := range taskManager.AllTasks.Tasks {
 				if len(tasks.QueuedProcesses) == 0 {
 					continue
 				}
-				custom_log.Logger.Debug("Tasks In Queue: ", key, len(tasks.QueuedProcesses))
+				custom_log.Logger.Debug("Tasks In Queue: ", tasks.DisplayName, len(tasks.QueuedProcesses))
 			}
 
 			if len(taskManager.PendingTasks.PendingQueue) > 0 {
