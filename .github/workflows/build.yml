@@ -5,10 +5,12 @@ on:
     branches:
       - main
 
+env:
+  IMAGE_NAME: ghcr.io/arinji2/ai-backend:latest
+
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,7 +25,38 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Build and Tag Docker Image
+      - name: Check if image exists and get digest
+        id: check_image
+        continue-on-error: true
         run: |
-          docker build -t ghcr.io/arinji2/ai-backend:latest .
-          docker push ghcr.io/arinji2/ai-backend:latest
+          # Try to pull the existing image and get its digest
+          docker pull ${{ env.IMAGE_NAME }}
+          EXISTING_DIGEST=$(docker inspect ${{ env.IMAGE_NAME }} --format='{{index .RepoDigests 0}}' || echo '')
+          echo "existing_digest=${EXISTING_DIGEST}" >> $GITHUB_ENV
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v5
+        id: build
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}
+          cache-to: type=inline
+          provenance: false
+
+      - name: Get new image digest
+        id: new_digest
+        run: |
+          NEW_DIGEST=$(docker inspect ${{ env.IMAGE_NAME }} --format='{{index .RepoDigests 0}}' || echo '')
+          echo "new_digest=${NEW_DIGEST}" >> $GITHUB_ENV
+
+      - name: Compare and push if different
+        run: |
+          if [ "${{ env.existing_digest }}" != "${{ env.new_digest }}" ]; then
+            echo "Changes detected in the image, pushing..."
+            docker push ${{ env.IMAGE_NAME }}
+          else
+            echo "No changes detected in the image, skipping push"
+          fi
