@@ -22,14 +22,7 @@ func SetupTasks(optionalKeys []JsonKeys) (*TaskObjects, *PendingTaskObjects) {
 			panic(err)
 		}
 
-		keyDir := ""
-
-		if os.Getenv("ENVIRONMENT") == "PRODUCTION" {
-			keyDir = "/keys.json"
-		} else {
-			keyDir = fmt.Sprintf("%s/keys.json", dir)
-		}
-
+		keyDir := fmt.Sprintf("%s/keys.json", dir)
 		jsonFile, err := os.Open(keyDir)
 		if err != nil {
 			panic(err)
