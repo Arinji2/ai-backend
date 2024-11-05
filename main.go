@@ -22,7 +22,11 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	} else {
-		fmt.Println("Environment File Found")
+		if os.Getenv("ENVIRONMENT") == "PRODUCTION" {
+			fmt.Println("Production Environment")
+		} else {
+			fmt.Println("Environment File Found")
+		}
 	}
 	r := chi.NewRouter()
 	r.Use(SkipLoggingMiddleware)
@@ -50,6 +54,12 @@ func main() {
 
 		}
 	}()
+
+	//The task manager breaks apart after 2+ hours, we restart it as a temp fix
+	ticker := time.NewTicker(time.Hour * 2)
+	for range ticker.C {
+		os.Exit(0)
+	}
 
 	http.ListenAndServe(":8080", r)
 }
