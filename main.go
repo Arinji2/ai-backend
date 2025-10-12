@@ -56,7 +56,7 @@ func main() {
 	}()
 
 	go func() {
-		//The task manager breaks apart after 2+ hours, we restart it as a temp fix
+		// The task manager breaks apart after 2+ hours, we restart it as a temp fix
 		ticker := time.NewTicker(time.Hour * 2)
 		for range ticker.C {
 			os.Exit(0)
