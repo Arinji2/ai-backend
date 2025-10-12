@@ -67,13 +67,13 @@ func main() {
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Vibeify Backend: Request Received")
-	w.Write([]byte("Vibeify Backend: Request Received"))
+	fmt.Println("AI Backend: Request Received")
+	w.Write([]byte("AI Backend: Request Received"))
 	render.Status(r, http.StatusOK)
 }
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Vibeify Backend: Health Check"))
+	w.Write([]byte("AI Backend: Health Check"))
 	render.Status(r, http.StatusOK)
 }
 
