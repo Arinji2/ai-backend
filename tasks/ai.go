@@ -17,7 +17,7 @@ func GetModel(task *TaskObject) (*genai.GenerativeModel, context.Context) {
 	if err != nil {
 		panic(err)
 	}
-	model := client.GenerativeModel("gemini-1.5-flash")
+	model := client.GenerativeModel("gemini-2.5-flash")
 	model.SetTemperature(2.0)
 	return model, ctx
 }
@@ -26,7 +26,6 @@ func GetPromptResponse(task *TaskObject, prompt string) (string, error) {
 	model, context := GetModel(task)
 	resp, err := model.GenerateContent(context, genai.Text(prompt))
 	if err != nil {
-
 		return "", err
 	}
 
@@ -40,14 +39,12 @@ func GetPromptResponse(task *TaskObject, prompt string) (string, error) {
 	result := re.ReplaceAllString(stringPrompt, "")
 	result = strings.TrimSpace(strings.ReplaceAll(result, "\n", " "))
 	return result, nil
-
 }
 
 func GetModelStatus(task *TaskObject) bool {
 	model, context := GetModel(task)
 	resp, err := model.GenerateContent(context, genai.Text(`Respond with only the word "testing" without the quotes.`))
 	if err != nil {
-
 		return false
 	}
 
@@ -65,5 +62,4 @@ func GetModelStatus(task *TaskObject) bool {
 	}
 	fmt.Println("Issue with Content", result)
 	return true
-
 }
